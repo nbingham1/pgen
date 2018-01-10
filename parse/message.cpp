@@ -2,27 +2,55 @@
 
 message::message()
 {
+	this->type = -1;
+	
+	offset = -1;
+	length = 0;
+	column = -1;
 	line = -1;
-	len = -1;
 }
 
 message::message(int type, string txt)
 {
 	this->type = type;
-	this->len = 0;
 	this->txt = txt;
+	
+	offset = -1;
+	length = 0;
+	column = -1;
+	line = -1;
 }
 
-message::message(int type, string txt, const lex &lexer, int len)
+message::message(int type, string txt, lex &lexer, bool has_ctx, intptr_t begin, intptr_t end)
 {
 	this->type = type;
 	this->txt = txt;
 
-	this->file = lexer.name;
-	this->offset = lexer.offset;
-	this->column = lexer.column;
-	this->line = lexer.line;
-	this->len = len;
+	file = lexer.name;
+
+	if (begin < 0)
+		begin = lexer.offset;
+	if (end < 0)
+		end = begin;
+
+	offset = begin;
+	length = end - begin;
+	line = lexer.lineof(begin);
+	column = offset - lexer.lines[line];
+
+	if (has_ctx)
+	{
+		ctx = lexer.getline(line);
+		for (int i = 0; i < column; i++)
+		{
+			if (ctx[i] < 32 || ctx[i] == 127)
+				ctx.push_back(ctx[i]);
+			else
+				ctx.push_back(' ');
+		}
+		for (int i = 0; i < length; i++)
+			ctx += '^';
+	}
 }
 
 message::~message()
@@ -42,15 +70,22 @@ string message::typestr()
 
 void message::emit()
 {
-#ifdef DEBUG
-	printf("%s:%d ", file.c_str(), line);
-#endif
+	if (file.size() > 0)
+		printf("%s:", file.c_str());
+	else
+		printf(":");
 
-	if (loc)
-		printf("%s ", loc.report().c_str());
+	if (line >= 0)
+		printf("%ld:", line);
+	else
+		printf(":");
+
+	if (column >= 0)
+		printf("%ld ", column);
+	else
+		printf(" ");
+
 	printf("%s: %s\n", typestr().c_str(), txt.c_str());
-	if (loc) {
-		printf("%s", loc.line->c_str());
-		printf("%s", loc.pointer(len).c_str());
-	}
+	if (ctx.size() > 0)
+		printf("%s", ctx.c_str());
 }

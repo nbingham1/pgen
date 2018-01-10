@@ -13,7 +13,7 @@ struct message
 {
 	message();
 	message(int type, string txt);
-	message(int type, string txt, const lex &lexer, int len = 1);
+	message(int type, string txt, lex &lexer, bool has_ctx = false, intptr_t begin = -1, intptr_t end = -1);
 	~message();
 
 	enum {
@@ -25,12 +25,13 @@ struct message
 
 	string file;
 	intptr_t offset;
+	intptr_t length;
 	intptr_t column;
 	intptr_t line;
 	
 	int type;
 	string txt;
-	int len;
+	string ctx;
 
 	string typestr();
 	void emit();

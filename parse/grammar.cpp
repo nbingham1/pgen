@@ -1,5 +1,9 @@
 #include "grammar.h"
 
+using namespace std;
+
+int classid_count = 0;
+
 /********************** TOKEN **********************/
 
 grammar::token::token(intptr_t begin, intptr_t end)
@@ -33,10 +37,36 @@ void grammar::token::extend(const token &t)
 	tokens.insert(tokens.end(), t.tokens.begin(), t.tokens.end());
 }
 
+void grammar::token::clear()
+{
+	tokens.clear();
+	end = begin;
+}
+
+void grammar::token::emit(lex &lexer, string tab)
+{
+	if (tokens.size() == 0)
+		printf("%s:%ld-%ld: \"%s\"\n", type.c_str(), begin, end, lexer.read(begin, end).c_str());
+	else
+	{
+		printf("%s:%ld-%ld: \"%s\"\n{\n", type.c_str(), begin, end, lexer.read(begin, end).c_str());
+		for (int i = 0; i < (int)tokens.size(); i++)
+			tokens[i].emit(lexer, tab+"\t");
+		printf("}\n");
+	}
+}
+
 /********************** PARSING **********************/
 
 grammar::parsing::parsing(intptr_t begin, intptr_t end) : tree(begin, end) {}
 grammar::parsing::~parsing() {}
+
+void grammar::parsing::emit(lex &lexer)
+{
+	tree.emit(lexer);
+	for (int i = 0; i < (int)msgs.size(); i++)
+		msgs[i].emit();
+}
 
 /********************** NODE **********************/
 
@@ -52,18 +82,36 @@ grammar::node::~node()
 
 /********************** SYMBOL **********************/
 
-grammar::symbol::symbol() { id = typeid(grammar::symbol); }
+grammar::symbol::symbol() { id = classid<grammar::symbol>(); }
 grammar::symbol::~symbol() { }
 
 /********************** LEAF **********************/
 
-grammar::leaf::leaf() { id = typeid(grammar::leaf); }
+grammar::leaf::leaf() { id = classid<grammar::leaf>(); }
 grammar::leaf::~leaf() { }
 
 /********************** STEM **********************/
 
-grammar::stem::stem() { id = typeid(grammar::stem); }
-grammar::stem::~stem() { }
+grammar::stem::stem()
+{
+	id = classid<grammar::stem>();
+	reference = -1;
+}
+
+grammar::stem::stem(int reference)
+{
+	id = classid<grammar::stem>();
+	this->reference = reference;
+}
+
+grammar::stem::~stem()
+{
+}
+
+int grammar::stem::setup(lex &lexer) const
+{
+	return reference;
+}
 
 /********************** ITERATOR **********************/
 
@@ -97,33 +145,33 @@ grammar::symbol *grammar::iterator::operator->() const
 	return (grammar::symbol*)loc;
 }
 
-iterator grammar::iterator::operator++(int)
+grammar::iterator grammar::iterator::operator++(int)
 {
 	iterator result(loc);
 	loc = loc->right;
 	return result;
 }
 
-iterator grammar::iterator::operator--(int)
+grammar::iterator grammar::iterator::operator--(int)
 {
 	iterator result(loc);
 	loc = loc->left;
 	return result;
 }
 
-iterator &grammar::iterator::operator++()
+grammar::iterator &grammar::iterator::operator++()
 {
 	loc = loc->right;
 	return *this;
 }
 
-iterator &grammar::iterator::operator--()
+grammar::iterator &grammar::iterator::operator--()
 {
 	loc = loc->left;
 	return *this;
 }
 
-iterator &grammar::iterator::operator+=(int n)
+grammar::iterator &grammar::iterator::operator+=(int n)
 {
 	for (int i = 0; i < n && loc->right != loc; i++)
 		loc = loc->right;
@@ -131,7 +179,7 @@ iterator &grammar::iterator::operator+=(int n)
 	return *this;
 }
 
-iterator &grammar::iterator::operator-=(int n)
+grammar::iterator &grammar::iterator::operator-=(int n)
 {
 	for (int i = 0; i < n && loc->left != loc; i++)
 		loc = loc->left;
@@ -139,26 +187,26 @@ iterator &grammar::iterator::operator-=(int n)
 	return *this;
 }
 
-iterator grammar::iterator::operator+(int n) const
+grammar::iterator grammar::iterator::operator+(int n) const
 {
 	iterator result(loc);
 	result += n;
 	return result;
 }
 
-iterator grammar::iterator::operator-(int n) const
+grammar::iterator grammar::iterator::operator-(int n) const
 {
 	iterator result(loc);
 	result -= n;
 	return result;
 }
 
-links &grammar::iterator::next() const
+grammar::links &grammar::iterator::next() const
 {
 	return ((grammar::symbol*)loc)->next;
 }
 
-links &grammar::iterator::prev() const
+grammar::links &grammar::iterator::prev() const
 {
 	return ((grammar::symbol*)loc)->prev;
 }
@@ -183,7 +231,7 @@ bool grammar::iterator::operator!=(const_iterator iter) const
 	return loc != iter.loc;
 }
 
-iterator grammar::iterator::insert(grammar::symbol *sym)
+grammar::iterator grammar::iterator::insert(grammar::symbol *sym) const
 {
 	if (sym->left && sym->left != sym)
 		sym->left->right = sym->right;
@@ -197,7 +245,7 @@ iterator grammar::iterator::insert(grammar::symbol *sym)
 	return iterator(sym);
 }
 
-iterator grammar::iterator::link(iterator n) const
+grammar::iterator grammar::iterator::link(iterator n) const
 {
 	next().push_back(n);
 	if (n)
@@ -205,14 +253,14 @@ iterator grammar::iterator::link(iterator n) const
 	return n;
 }
 
-links grammar::iterator::link(links n) const
+grammar::links grammar::iterator::link(links n) const
 {
-	for (int i = 0; i < n.size(); i++)
+	for (int i = 0; i < (int)n.size(); i++)
 		link(n[i]);
 	return n;
 }
 
-iterator grammar::iterator::rlink(iterator n) const
+grammar::iterator grammar::iterator::rlink(iterator n) const
 {
 	prev().push_back(n);
 	if (n)
@@ -222,12 +270,12 @@ iterator grammar::iterator::rlink(iterator n) const
 
 void grammar::iterator::unlink_next(iterator n) const
 {
-	next().resize(remove(next().begin(), next.end(), n) - next().begin());
+	next().resize(remove(next().begin(), next().end(), n) - next().begin());
 }
 
 void grammar::iterator::unlink_prev(iterator n) const
 {
-	prev().resize(remove(prev().begin(), prev.end(), n) - prev().begin());
+	prev().resize(remove(prev().begin(), prev().end(), n) - prev().begin());
 }
 
 void grammar::iterator::unlink(iterator n) const
@@ -259,17 +307,17 @@ void grammar::iterator::drop()
 	delete del;
 }
 
-iterator grammar::iterator::push(grammar::symbol *sym) const
+grammar::iterator grammar::iterator::push(grammar::symbol *sym) const
 {
 	return link(insert(sym));
 }
 
-iterator grammar::iterator::rpush(grammar::symbol *sym) const
+grammar::iterator grammar::iterator::rpush(grammar::symbol *sym) const
 {
 	return rlink(insert(sym));
 }
 
-iterator &grammar::iterator::operator=(const iterator &copy)
+grammar::iterator &grammar::iterator::operator=(const iterator &copy)
 {
 	loc = copy.loc;
 	return *this;
@@ -287,6 +335,11 @@ grammar::const_iterator::const_iterator(const node *loc)
 	this->loc = loc;
 }
 
+grammar::const_iterator::const_iterator(const iterator &copy)
+{
+	loc = copy.loc;
+}
+
 grammar::const_iterator::const_iterator(const const_iterator &copy)
 {
 	loc = copy.loc;
@@ -294,7 +347,7 @@ grammar::const_iterator::const_iterator(const const_iterator &copy)
 
 grammar::const_iterator::operator bool() const
 {
-	return loc->left != loc && loc->right != loc;
+	return loc != NULL and loc->left != loc and loc->right != loc;
 }
 
 const grammar::symbol &grammar::const_iterator::operator*() const
@@ -307,33 +360,33 @@ const grammar::symbol *grammar::const_iterator::operator->() const
 	return (const grammar::symbol*)loc;
 }
 
-const_iterator grammar::const_iterator::operator++(int)
+grammar::const_iterator grammar::const_iterator::operator++(int)
 {
 	const_iterator result(loc);
 	loc = loc->right;
 	return result;
 }
 
-const_iterator grammar::const_iterator::operator--(int)
+grammar::const_iterator grammar::const_iterator::operator--(int)
 {
 	const_iterator result(loc);
 	loc = loc->left;
 	return result;
 }
 
-const_iterator &grammar::const_iterator::operator++()
+grammar::const_iterator &grammar::const_iterator::operator++()
 {
 	loc = loc->right;
 	return *this;
 }
 
-const_iterator &grammar::const_iterator::operator--()
+grammar::const_iterator &grammar::const_iterator::operator--()
 {
 	loc = loc->left;
 	return *this;
 }
 
-const_iterator &grammar::const_iterator::operator+=(int n)
+grammar::const_iterator &grammar::const_iterator::operator+=(int n)
 {
 	for (int i = 0; i < n && loc->right != loc; i++)
 		loc = loc->right;
@@ -341,7 +394,7 @@ const_iterator &grammar::const_iterator::operator+=(int n)
 	return *this;
 }
 
-const_iterator &grammar::const_iterator::operator-=(int n)
+grammar::const_iterator &grammar::const_iterator::operator-=(int n)
 {
 	for (int i = 0; i < n && loc->left != loc; i++)
 		loc = loc->left;
@@ -349,35 +402,35 @@ const_iterator &grammar::const_iterator::operator-=(int n)
 	return *this;
 }
 
-const_iterator grammar::const_iterator::operator+(int n) const
+grammar::const_iterator grammar::const_iterator::operator+(int n) const
 {
 	const_iterator result(loc);
 	result += n;
 	return result;
 }
 
-const_iterator grammar::const_iterator::operator-(int n) const
+grammar::const_iterator grammar::const_iterator::operator-(int n) const
 {
 	const_iterator result(loc);
 	result -= n;
 	return result;
 }
 
-const_links grammar::const_iterator::next() const
+grammar::const_links grammar::const_iterator::next() const
 {
 	const_links result;
 	result.reserve(((symbol*)loc)->next.size());
-	for (int i = 0; i < ((symbol*)loc)->next.size(); i++)
-		result.push_back_unsafe(const_iterator(((symbol*)loc)->next[i].loc));
+	for (int i = 0; i < (int)((symbol*)loc)->next.size(); i++)
+		result.push_back(const_iterator(((symbol*)loc)->next[i].loc));
 	return result;
 }
 
-const_links grammar::const_iterator::prev() const
+grammar::const_links grammar::const_iterator::prev() const
 {
 	const_links result;
 	result.reserve(((symbol*)loc)->prev.size());
-	for (int i = 0; i < ((symbol*)loc)->prev.size(); i++)
-		result.push_back_unsafe(const_iterator(((symbol*)loc)->prev[i].loc));
+	for (int i = 0; i < (int)((symbol*)loc)->prev.size(); i++)
+		result.push_back(const_iterator(((symbol*)loc)->prev[i].loc));
 	return result;
 }
 
@@ -401,13 +454,13 @@ bool grammar::const_iterator::operator!=(const_iterator iter) const
 	return loc != iter.loc;
 }
 
-const_iterator &grammar::const_iterator::operator=(const const_iterator &copy)
+grammar::const_iterator &grammar::const_iterator::operator=(const const_iterator &copy)
 {
 	loc = copy.loc;
 	return *this;
 }
 
-const_iterator &grammar::const_iterator::operator=(const iterator &copy)
+grammar::const_iterator &grammar::const_iterator::operator=(const iterator &copy)
 {
 	loc = copy.loc;
 	return *this;
@@ -417,93 +470,165 @@ const_iterator &grammar::const_iterator::operator=(const iterator &copy)
 
 grammar::fork::fork() {}
 
-grammar::fork::fork(const grammar &gram, int index)
+grammar::fork::fork(int frame, const grammar &gram, int index)
 {
 	rule = index;
-	branch = gram.rule[rule].start.begin();
-	curr = *brach;
+	parent = frame;
+	branches = gram.rules[index].start;
+	branch = 0;
+	curr = branches[branch];
 }
 
-grammar::fork::fork(const_iterator point, int index)
+grammar::fork::fork(int frame, const_iterator point)
 {
 	rule = -1;
-	branch = point.next().begin() + index;
-	curr = *branch;
+	parent = frame;
+	if (point)
+	{
+		branches = point.next();
+		branch = 0;
+		curr = branches[branch];
+	}
+	else
+	{
+		branch = 0;
+		curr = point;
+	}
 }
 
 grammar::fork::~fork() {}
 
 /********************** FORKS **********************/
 
-grammar::forks::forks() {}
+grammar::forks::forks()
+{
+	frame = -1;
+}
 
 grammar::forks::forks(const grammar &gram, int index)
 {
-	elems.push_back(fork(gram, index));
+	elems.push_back(fork(-1, gram, index));
+	frame = 0;
 }
 
-grammar::forks::~forks() {}
+grammar::forks::~forks()
+{
+}
 
 grammar::forks::operator bool()
 {
-	return elems.size() > 0;
+	return (int)elems.size() > 0 && (elems.back().curr || frame >= 0);
 }
 
-void grammar::forks::push(const grammar &gram, int index)
+void grammar::forks::push(const_iterator point)
 {
-	elems.push_back(fork(gram, index));
-	frames.push_back(elems.size()-1);
-}
-
-void grammar::forks::push(const_iterator point, int index)
-{
-	elems.push_back(fork(point, index));
+	elems.push_back(fork(frame, point));
 }
 
 void grammar::forks::pop()
 {
 	elems.pop_back();
-	while (frames.back() >= elems.size())
-		frames.pop_back();
 }
 
-fork &grammar::forks::inc()
+void grammar::forks::push_frame(const grammar &gram, int index)
 {
-	++(elems.back().branch);
-	while (elems.size() > 0 and elems.back().branch == elems.back().something.end())
+	elems.push_back(fork(frame, gram, index));
+	frame = (int)elems.size()-1;
+}
+
+void grammar::forks::pop_frame()
+{
+	if (frame > 0)
+		elems.push_back(fork(elems[frame].parent, elems[frame-1].curr));
+	else
+		elems.push_back(fork(elems[frame].parent, const_iterator()));
+	frame = elems.back().parent;
+}
+
+bool grammar::forks::rewind(const grammar &gram, lex &lexer, vector<message> *msgs)
+{
+	printf("rewind: %d, %d/%d\n", (int)elems.size(), elems.back().branch, (int)elems.back().branches.size());
+
+	if (elems.back().branch < (int)elems.back().branches.size())
 	{
-		elems.pop_back();
 		++(elems.back().branch);
+		while ((int)elems.size() > 1 and elems.back().branch >= (int)elems.back().branches.size())
+		{
+			if (msgs != NULL and elems.back().rule >= 0)
+			{
+				msgs->push_back(message(message::error, "expected " + gram.rules[elems.back().rule].name, lexer, true, elems.back().tree.begin, elems.back().tree.end));
+			}
+			elems.pop_back();
+			++(elems.back().branch);
+		}
 	}
 
-	elems.back().curr = *elems.back().branch;
-	return elems.back();
+	if (elems.back().branch >= (int)elems.back().branches.size())
+	{
+		printf("pop_back\n");
+		elems.pop_back();
+		return false;
+	}
+	else
+	{
+		printf("moving\n");
+		elems.back().tree.emit(lexer);
+		lexer.moveto(elems.back().tree.begin-1);
+		elems.back().tree.clear();
+		elems.back().curr = elems.back().branches[elems.back().branch];
+		if (elems.back().rule >= 0)
+			frame = (int)elems.size()-1;
+		else
+			frame = elems.back().parent;
+		return true;
+	}
 }
 
-fork &grammar::forks::seq()
+void grammar::forks::advance()
 {
-	if (elems.back().curr.next().size() == 0)
+	if ((int)elems.back().curr.next().size() == 0)
 		elems.back().curr.loc = NULL;
-	else if (elems.back().curr.next().size() == 1)
+	else if ((int)elems.back().curr.next().size() == 1)
 		elems.back().curr = elems.back().curr.next()[0];
 	else
-		elems.push_back(fork(elems.back().curr));
-
-	return elems.back();
+		elems.push_back(fork(frame, elems.back().curr));
 }
 
-fork &grammar::forks::back()
+grammar::fork &grammar::forks::back()
 {
 	return elems.back();
 }
 
-const_iterator &grammar::forks::curr()
+grammar::const_iterator &grammar::forks::curr()
 {
 	return elems.back().curr;
 }
 
-token grammar::forks::collapse()
+grammar::token grammar::forks::collapse_frame(int &index)
 {
+	int start = index;
+	token result;
+	while (index < (int)elems.size())
+	{
+		if (index == start)
+			result = elems[index++].tree;
+		else if (elems[index].parent == start)
+		{
+			if (elems[index].rule >= 0)
+				result.append(collapse_frame(index));
+			else
+				result.extend(elems[index++].tree);
+		}
+		else
+			return result;
+	}
+	return result;
+}
+
+grammar::token grammar::forks::collapse()
+{
+	int index = 0;
+	return collapse_frame(index);
 }
 
 /********************** GRAMMAR **********************/
@@ -532,7 +657,7 @@ void grammar::clear()
 	right.left = &left;
 }
 
-iterator grammar::insert(symbol *sym)
+grammar::iterator grammar::insert(symbol *sym)
 {
 	if (sym->left && sym->left != sym)
 		sym->left->right = sym->right;
@@ -540,90 +665,169 @@ iterator grammar::insert(symbol *sym)
 		sym->right->left = sym->left;
 
 	sym->left = right.left;
-	sym->right = right;
+	sym->right = &right;
 	sym->left->right = sym;
-	right->left = sym;
+	right.left = sym;
 	return iterator(sym);
 }
 
-iterator grammar::begin()
+grammar::iterator grammar::begin()
 {
 	return iterator(left.right);
 }
 
-iterator grammar::rbegin()
+grammar::iterator grammar::rbegin()
 {
 	return iterator(right.left);
 }
 
-iterator grammar::end()
+grammar::iterator grammar::end()
 {
 	return iterator(&right);
 }
 
-iterator grammar::rend()
+grammar::iterator grammar::rend()
 {
 	return iterator(&left);
 }
 
-const_iterator grammar::begin() const
+grammar::const_iterator grammar::begin() const
 {
 	return const_iterator(left.right);
 }
 
-const_iterator grammar::rbegin() const
+grammar::const_iterator grammar::rbegin() const
 {
 	return const_iterator(right.left);
 }
 
-const_iterator grammar::end() const
+grammar::const_iterator grammar::end() const
 {
 	return const_iterator(&right);
 }
 
-const_iterator grammar::rend() const
+grammar::const_iterator grammar::rend() const
 {
 	return const_iterator(&left);
 }
 
-parsing grammar::parse(lex &lexer, int index)
+grammar::parsing grammar::parse(lex &lexer, int index)
 {
-	parsing best(lexer.offset);
+	parsing best;
 	forks stack(*this, index);
 
 	while (stack)
 	{
-		if (stack.curr() == end())
-		{
-			
-		}
+		if (not stack.curr())
+			stack.pop_frame();
 		else if (stack.curr()->is<stem>())
 		{
 			int rule = stack.curr()->as<stem>()->setup(lexer);
-			stack.push(*this, rule);
+			stack.push_frame(*this, rule);
 		}
 		else
 		{
-			parsing result(lexer.offset);
+			parsing result;
 			if (stack.curr()->is<leaf>())
 				result = stack.curr()->as<leaf>()->parse(lexer);
 			else if (not stack.curr()->is<symbol>())
-				result.msgs.push_back(message(message::fail, "symbols must inherit from either leaf or stem."));
+				result.msgs.push_back(message(message::fail, "symbols must inherit from either leaf or stem.", lexer, false, result.tree.begin, result.tree.end));
 
-			stack.back().tree.append(result);
-			if (result.msgs.size() > 0)
+			printf("Parsing: \n");
+			result.emit(lexer);
+			printf("Done\n");			
+
+			stack.back().tree.append(result.tree);
+			if ((int)result.msgs.size() > 0)
 			{
+				printf("rewind\n");
 				if (result.tree.end > best.tree.end)
 				{
 					best.tree = stack.collapse();
 					best.msgs = result.msgs;
+					printf("Best\n");
+					best.emit(lexer);
+					stack.rewind(*this, lexer, &best.msgs);
 				}
-
-				stack.inc();
+				else
+					stack.rewind(*this, lexer);
 			}
 			else
-				stack.seq();
+			{
+				printf("advancing\n");
+				stack.advance();
+			}
+		}
+	
+		printf("\n");
+	}
+
+	if ((int)stack.elems.size() == 0)
+		return best;
+	else
+	{
+		parsing result;
+		result.tree = stack.collapse();
+		return result;
+	}
+
+}
+
+class_t::class_t()
+{
+	invert = false;
+}
+
+class_t::~class_t()
+{
+}
+
+void class_t::add(char start)
+{
+	ranges.push_back(pair<char, char>(start, start));
+}
+
+void class_t::add(char start, char end)
+{
+	ranges.push_back(pair<char, char>(start, end));
+}
+
+string class_t::name() const
+{
+	string result;
+	result.push_back('[');
+	if (invert)
+		result.push_back('^');
+	for (int i = 0; i < (int)ranges.size(); i++)
+	{
+		if (ranges[i].first == ranges[i].second)
+			result.push_back(ranges[i].first);
+		else {
+			result.push_back(ranges[i].first);
+			result.push_back('-');
+			result.push_back(ranges[i].second);
 		}
 	}
+	result.push_back(']');
+	return result;
+}
+
+grammar::parsing class_t::parse(lex &lexer) const
+{
+	char c = lexer.get();
+	printf("%c %c %c %ld\n", c, lexer.prev, lexer.curr, lexer.offset);
+	grammar::parsing result(lexer.offset);
+	++result.tree.end;
+	result.tree.type = "class";
+
+	bool match = false;
+	for (int i = 0; i < (int)ranges.size() and not match; i++)
+		if (c >= ranges[i].first && c <= ranges[i].second)
+			match = true;
+
+	if (match == invert)
+		result.msgs.push_back(message(message::error, string("expected ") + name() + " but found '" + c + "'.", lexer, true, result.tree.begin, result.tree.end));
+	
+	return result;
 }
 

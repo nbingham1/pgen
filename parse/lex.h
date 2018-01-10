@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string>
 
 using namespace std;
@@ -13,7 +14,7 @@ struct lex
 	string name;
 	vector<intptr_t> lines;
 	intptr_t offset;
-	int line;
+	intptr_t line;
 	char prev, curr;
 	
 	operator bool();
@@ -21,7 +22,12 @@ struct lex
 	bool open(string filename);
 	void close();
 
-	void moveto(intptr_t offset);
+	int lineof(intptr_t pos) const;
+	
+	void moveto(intptr_t pos);
+
+	string getline(intptr_t line);
+	string read(intptr_t begin, intptr_t end);
 
 	char get();
 };
