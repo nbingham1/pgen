@@ -29,6 +29,7 @@ struct lex
 	string getline(intptr_t line);
 	string read(intptr_t begin, intptr_t end);
 
+	bool eof();
 	char get();
 };
 

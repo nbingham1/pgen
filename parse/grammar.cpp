@@ -46,13 +46,13 @@ void grammar::token::clear()
 void grammar::token::emit(lex &lexer, string tab)
 {
 	if (tokens.size() == 0)
-		printf("%s:%ld-%ld: \"%s\"\n", type.c_str(), begin, end, lexer.read(begin, end).c_str());
+		printf("%s%s:%ld-%ld: \"%s\"\n", tab.c_str(), type.c_str(), begin, end, lexer.read(begin, end).c_str());
 	else
 	{
-		printf("%s:%ld-%ld: \"%s\"\n{\n", type.c_str(), begin, end, lexer.read(begin, end).c_str());
+		printf("%s%s:%ld-%ld: \"%s\"\n%s{\n", tab.c_str(), type.c_str(), begin, end, lexer.read(begin, end).c_str(), tab.c_str());
 		for (int i = 0; i < (int)tokens.size(); i++)
-			tokens[i].emit(lexer, tab+"\t");
-		printf("}\n");
+			tokens[i].emit(lexer, tab+" ");
+		printf("%s}\n", tab.c_str());
 	}
 }
 
@@ -466,6 +466,26 @@ grammar::const_iterator &grammar::const_iterator::operator=(const iterator &copy
 	return *this;
 }
 
+grammar::rule::rule()
+{
+	this->keep = false;
+}
+
+grammar::rule::rule(string name, bool keep)
+{
+	this->name = name;
+	this->keep = keep;
+}
+
+grammar::rule::~rule()
+{
+}
+
+void grammar::rule::push(const_iterator it)
+{
+	start.push_back(it);
+}
+
 /********************** FORK **********************/
 
 grammar::fork::fork() {}
@@ -477,6 +497,7 @@ grammar::fork::fork(int frame, const grammar &gram, int index)
 	branches = gram.rules[index].start;
 	branch = 0;
 	curr = branches[branch];
+	tree.type = gram.rules[rule].name;
 }
 
 grammar::fork::fork(int frame, const_iterator point)
@@ -831,3 +852,57 @@ grammar::parsing class_t::parse(lex &lexer) const
 	return result;
 }
 
+keyword::keyword()
+{
+}
+
+keyword::keyword(string value)
+{
+	this->value = value;
+}
+
+keyword::~keyword()
+{
+}
+
+grammar::parsing keyword::parse(lex &lexer) const
+{
+	grammar::parsing result;
+	result.tree.type = "keyword";
+	result.tree.begin = lexer.offset+1;
+	result.tree.end = result.tree.begin;
+	for (int i = 0; i < (int)value.size(); i++)
+	{
+		char c = lexer.get();
+		printf("comparing %c == %c for %d\n", c, value[i], i);
+	
+		++result.tree.end;
+		
+		if (c != value[i]) {
+			result.msgs.push_back(message(message::error, string("expected \"") + value + "\".", lexer, true, result.tree.begin, result.tree.end));
+			return result;
+		}
+	}
+
+	return result;
+}
+
+eof::eof()
+{
+}
+
+eof::~eof()
+{
+}
+
+grammar::parsing eof::parse(lex &lexer) const
+{
+	if (lexer.eof())
+		return grammar::parsing(lexer);
+	else
+	{
+		grammar::parsing result(lexer);
+		result.msgs.push_back(message(message::error, "unable to fully parse file.", lexer, false, result.tree.begin, result.tree.end));
+		return result;
+	}
+}

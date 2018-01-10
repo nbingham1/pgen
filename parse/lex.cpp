@@ -64,13 +64,29 @@ void lex::moveto(intptr_t pos)
 		while (not feof(ptr) and offset < pos)
 			get();
 	}
-	else
+	else if (pos > 0)
 	{
 		fseek(ptr, pos-1, SEEK_SET);
 		prev = fgetc(ptr);
 		curr = fgetc(ptr);
 		offset = pos;
 		line = lineof(pos);
+	}
+	else if (pos >= 0)
+	{
+		fseek(ptr, pos, SEEK_SET);
+		prev = '\n';
+		curr = fgetc(ptr);
+		offset = pos;
+		line = lineof(pos);
+	}
+	else
+	{
+		fseek(ptr, 0, SEEK_SET);
+		prev = '\0';
+		curr = '\n';
+		offset = -1;
+		line = -1;
 	}
 }
 
@@ -86,6 +102,11 @@ string lex::read(intptr_t begin, intptr_t end)
 	fread(&result[0], sizeof(char), result.size()-1, ptr);
 	fseek(ptr, offset+1, SEEK_SET);
 	return result;
+}
+
+bool lex::eof()
+{
+	return feof(ptr);
 }
 
 char lex::get()

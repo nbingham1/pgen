@@ -190,9 +190,15 @@ struct grammar
 
 	struct rule
 	{
+		rule();
+		rule(string name, bool keep = true);
+		~rule();
+
 		string name;
 		bool keep;
 		vector<const_iterator> start;
+
+		void push(const_iterator it);
 	};
 	
 	struct fork
@@ -273,3 +279,21 @@ struct class_t : grammar::leaf
 	grammar::parsing parse(lex &lexer) const;
 };
 
+struct keyword : grammar::leaf
+{
+	keyword();
+	keyword(string value);
+	~keyword();
+
+	string value;
+
+	grammar::parsing parse(lex &lexer) const;
+};
+
+struct eof : grammar::leaf
+{
+	eof();
+	~eof();
+
+	grammar::parsing parse(lex &lexer) const;
+};
