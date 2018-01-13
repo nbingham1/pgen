@@ -2,6 +2,21 @@
 
 using namespace std;
 
+string escape(char c)
+{
+	switch (c) {
+		case '\a': return "\\a";
+		case '\b': return "\\b";
+		case '\f': return "\\f";
+		case '\n': return "\\n";
+		case '\r': return "\\r";
+		case '\t': return "\\t";
+		case '\v': return "\\v";
+		case '\0': return "\\0";
+		default: return string(1, c);
+	}
+}
+
 int classid_count = 0;
 
 /********************** TOKEN **********************/
@@ -490,30 +505,38 @@ void grammar::rule::push(const_iterator it)
 
 grammar::fork::fork() {}
 
-grammar::fork::fork(int frame, const grammar &gram, int index)
+grammar::fork::fork(const grammar &gram, int rule, int parent, intptr_t offset)
 {
-	rule = index;
-	parent = frame;
-	branches = gram.rules[index].start;
-	branch = 0;
-	curr = branches[branch];
-	tree.type = gram.rules[rule].name;
+	this->rule = rule;
+	this->keep = gram.rules[rule].keep;
+	this->branches = gram.rules[rule].start;
+
+	this->tree.type = gram.rules[rule].name;
+	this->tree.begin = offset;
+	this->tree.end = offset;
+
+	this->parent = parent;
+	this->branch = 0;
+	this->curr = branches[branch];
 }
 
-grammar::fork::fork(int frame, const_iterator point)
+grammar::fork::fork(const_iterator point, int parent, intptr_t offset)
 {
-	rule = -1;
-	parent = frame;
+	this->rule = -1;
+	this->keep = true;
+	this->parent = parent;
+	this->tree.begin = offset;
+	this->tree.end = offset;
 	if (point)
 	{
-		branches = point.next();
-		branch = 0;
-		curr = branches[branch];
+		this->branches = point.next();
+		this->branch = 0;
+		this->curr = branches[branch];
 	}
 	else
 	{
-		branch = 0;
-		curr = point;
+		this->branch = 0;
+		this->curr = point;
 	}
 }
 
@@ -526,9 +549,9 @@ grammar::forks::forks()
 	frame = -1;
 }
 
-grammar::forks::forks(const grammar &gram, int index)
+grammar::forks::forks(const grammar &gram, int rule, intptr_t offset)
 {
-	elems.push_back(fork(-1, gram, index));
+	elems.push_back(fork(gram, rule, -1, offset));
 	frame = 0;
 }
 
@@ -541,9 +564,9 @@ grammar::forks::operator bool()
 	return (int)elems.size() > 0 && (elems.back().curr || frame >= 0);
 }
 
-void grammar::forks::push(const_iterator point)
+void grammar::forks::push(const_iterator point, intptr_t offset)
 {
-	elems.push_back(fork(frame, point));
+	elems.push_back(fork(point, frame, offset));
 }
 
 void grammar::forks::pop()
@@ -551,24 +574,24 @@ void grammar::forks::pop()
 	elems.pop_back();
 }
 
-void grammar::forks::push_frame(const grammar &gram, int index)
+void grammar::forks::push_frame(const grammar &gram, int rule, intptr_t offset)
 {
-	elems.push_back(fork(frame, gram, index));
+	elems.push_back(fork(gram, rule, frame, offset));
 	frame = (int)elems.size()-1;
 }
 
-void grammar::forks::pop_frame()
+void grammar::forks::pop_frame(intptr_t offset)
 {
 	if (frame > 0)
-		elems.push_back(fork(elems[frame].parent, elems[frame-1].curr));
+		elems.push_back(fork(elems[frame-1].curr, elems[frame].parent, offset));
 	else
-		elems.push_back(fork(elems[frame].parent, const_iterator()));
+		elems.push_back(fork(const_iterator(), elems[frame].parent, offset));
 	frame = elems.back().parent;
 }
 
 bool grammar::forks::rewind(const grammar &gram, lex &lexer, vector<message> *msgs)
 {
-	printf("rewind: %d, %d/%d\n", (int)elems.size(), elems.back().branch, (int)elems.back().branches.size());
+	printf("Rewind: %d, %d/%d\n", (int)elems.size(), elems.back().branch, (int)elems.back().branches.size());
 
 	if (elems.back().branch < (int)elems.back().branches.size())
 	{
@@ -586,15 +609,13 @@ bool grammar::forks::rewind(const grammar &gram, lex &lexer, vector<message> *ms
 
 	if (elems.back().branch >= (int)elems.back().branches.size())
 	{
-		printf("pop_back\n");
 		elems.pop_back();
 		return false;
 	}
 	else
 	{
-		printf("moving\n");
 		elems.back().tree.emit(lexer);
-		lexer.moveto(elems.back().tree.begin-1);
+		lexer.moveto(elems.back().tree.begin);
 		elems.back().tree.clear();
 		elems.back().curr = elems.back().branches[elems.back().branch];
 		if (elems.back().rule >= 0)
@@ -611,8 +632,9 @@ void grammar::forks::advance()
 		elems.back().curr.loc = NULL;
 	else if ((int)elems.back().curr.next().size() == 1)
 		elems.back().curr = elems.back().curr.next()[0];
-	else
-		elems.push_back(fork(frame, elems.back().curr));
+	else {
+		elems.push_back(fork(elems.back().curr, frame, elems.back().tree.end));
+	}
 }
 
 grammar::fork &grammar::forks::back()
@@ -636,7 +658,12 @@ grammar::token grammar::forks::collapse_frame(int &index)
 		else if (elems[index].parent == start)
 		{
 			if (elems[index].rule >= 0)
-				result.append(collapse_frame(index));
+			{
+				bool keep = elems[index].keep;
+				token temp = collapse_frame(index);
+				if (keep and temp.begin < temp.end)
+					result.append(temp);
+			}
 			else
 				result.extend(elems[index++].tree);
 		}
@@ -735,16 +762,16 @@ grammar::const_iterator grammar::rend() const
 grammar::parsing grammar::parse(lex &lexer, int index)
 {
 	parsing best;
-	forks stack(*this, index);
+	forks stack(*this, index, lexer.offset);
 
 	while (stack)
 	{
 		if (not stack.curr())
-			stack.pop_frame();
+			stack.pop_frame(lexer.offset);
 		else if (stack.curr()->is<stem>())
 		{
 			int rule = stack.curr()->as<stem>()->setup(lexer);
-			stack.push_frame(*this, rule);
+			stack.push_frame(*this, rule, lexer.offset);
 		}
 		else
 		{
@@ -761,7 +788,6 @@ grammar::parsing grammar::parse(lex &lexer, int index)
 			stack.back().tree.append(result.tree);
 			if ((int)result.msgs.size() > 0)
 			{
-				printf("rewind\n");
 				if (result.tree.end > best.tree.end)
 				{
 					best.tree = stack.collapse();
@@ -775,7 +801,7 @@ grammar::parsing grammar::parse(lex &lexer, int index)
 			}
 			else
 			{
-				printf("advancing\n");
+				printf("Advancing\n");
 				stack.advance();
 			}
 		}
@@ -791,7 +817,6 @@ grammar::parsing grammar::parse(lex &lexer, int index)
 		result.tree = stack.collapse();
 		return result;
 	}
-
 }
 
 class_t::class_t()
@@ -822,11 +847,11 @@ string class_t::name() const
 	for (int i = 0; i < (int)ranges.size(); i++)
 	{
 		if (ranges[i].first == ranges[i].second)
-			result.push_back(ranges[i].first);
+			result += escape(ranges[i].first);
 		else {
-			result.push_back(ranges[i].first);
+			result += escape(ranges[i].first);
 			result.push_back('-');
-			result.push_back(ranges[i].second);
+			result += escape(ranges[i].second);
 		}
 	}
 	result.push_back(']');
@@ -835,19 +860,19 @@ string class_t::name() const
 
 grammar::parsing class_t::parse(lex &lexer) const
 {
-	char c = lexer.get();
-	printf("%c %c %c %ld\n", c, lexer.prev, lexer.curr, lexer.offset);
 	grammar::parsing result(lexer.offset);
-	++result.tree.end;
 	result.tree.type = "class";
-
+	
+	char c = lexer.get();
+	++result.tree.end;
+	
 	bool match = false;
 	for (int i = 0; i < (int)ranges.size() and not match; i++)
 		if (c >= ranges[i].first && c <= ranges[i].second)
 			match = true;
 
 	if (match == invert)
-		result.msgs.push_back(message(message::error, string("expected ") + name() + " but found '" + c + "'.", lexer, true, result.tree.begin, result.tree.end));
+		result.msgs.push_back(message(message::error, string("expected ") + name() + " but found '" + escape(c) + "'.", lexer, true, result.tree.begin, result.tree.end));
 	
 	return result;
 }
@@ -867,15 +892,11 @@ keyword::~keyword()
 
 grammar::parsing keyword::parse(lex &lexer) const
 {
-	grammar::parsing result;
+	grammar::parsing result(lexer.offset);
 	result.tree.type = "keyword";
-	result.tree.begin = lexer.offset+1;
-	result.tree.end = result.tree.begin;
 	for (int i = 0; i < (int)value.size(); i++)
 	{
 		char c = lexer.get();
-		printf("comparing %c == %c for %d\n", c, value[i], i);
-	
 		++result.tree.end;
 		
 		if (c != value[i]) {
@@ -887,22 +908,3 @@ grammar::parsing keyword::parse(lex &lexer) const
 	return result;
 }
 
-eof::eof()
-{
-}
-
-eof::~eof()
-{
-}
-
-grammar::parsing eof::parse(lex &lexer) const
-{
-	if (lexer.eof())
-		return grammar::parsing(lexer);
-	else
-	{
-		grammar::parsing result(lexer);
-		result.msgs.push_back(message(message::error, "unable to fully parse file.", lexer, false, result.tree.begin, result.tree.end));
-		return result;
-	}
-}

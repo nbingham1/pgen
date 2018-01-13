@@ -11,5 +11,6 @@ struct peg_t : grammar
 	int load_grammar();
 	int load_choice();
 	int load_term();
+	int load_space();
 };
 

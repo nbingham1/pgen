@@ -1,4 +1,4 @@
-CXXFLAGS	 =  -g -O2 -Wall -fmessage-length=0 -I. -I../stdcore
+CXXFLAGS	 =  -g -O2 -Wall -fmessage-length=0 -I.
 # -g -fprofile-arcs -ftest-coverage
 SOURCES		 := $(wildcard parse/*.cpp)
 TESTS        := $(wildcard test/*.cpp)
@@ -7,8 +7,8 @@ TEST_OBJECTS := $(TESTS:.cpp=.o)
 DEPS         := $(OBJECTS:.o=.d)
 TEST_DEPS    := $(TEST_OBJECTS:.o=.d)
 GTEST        := ../googletest
-GTEST_I      := -I$(GTEST)/include -I. -I../stdcore
-GTEST_L      := -L$(GTEST) -L. -L../stdcore
+GTEST_I      := -I$(GTEST)/include -I.
+GTEST_L      := -L$(GTEST) -L.
 TARGET		 = libparse.a
 TEST_TARGET  = test_parse
 

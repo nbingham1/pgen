@@ -35,7 +35,9 @@ message::message(int type, string txt, lex &lexer, bool has_ctx, intptr_t begin,
 
 	offset = begin;
 	length = end - begin;
+	printf("%ld\n", begin);
 	line = lexer.lineof(begin);
+	printf("%ld/%d\n", line, (int)lexer.lines.size());
 	column = offset - lexer.lines[line];
 
 	if (has_ctx)

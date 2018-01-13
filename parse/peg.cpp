@@ -74,18 +74,30 @@ int peg_t::load_definition()
 	if (result >= (int)rules.size())
 	{
 		rules.push_back(rule("definition"));
-	
-		iterator n[4];
+
+		class_t space;
+		space.add(' ');
+		space.add('\t');
+		space.add('\n');
+		space.add('\r');
+		
+		iterator n[7];
 		n[0] = insert(new stem(load_instance()));
-		n[1] = insert(new keyword("="));
-		n[2] = insert(new stem(load_choice()));
-		n[3] = insert(new keyword(";"));
+		n[1] = insert(new stem(load_space()));
+		n[2] = insert(new keyword("="));
+		n[3] = insert(new stem(load_space()));
+		n[4] = insert(new stem(load_choice()));
+		n[5] = insert(new stem(load_space()));
+		n[6] = insert(new keyword(";"));
 		
 		rules[result].push(n[0]);
 		n[0].link(n[1]);
 		n[1].link(n[2]);
 		n[2].link(n[3]);
-		n[3].link(end());
+		n[3].link(n[4]);
+		n[4].link(n[5]);
+		n[5].link(n[6]);
+		n[6].link(end());
 	}
 
 	return result;
@@ -99,12 +111,14 @@ int peg_t::load_sequence()
 	{
 		rules.push_back(rule("sequence"));
 
-		iterator n[1];
+		iterator n[2];
 		n[0] = insert(new stem(load_term()));
+		n[1] = insert(new stem(load_space()));
 		
 		rules[result].push(n[0]);
-		n[0].link(n[0]);
+		n[0].link(n[1]);
 		n[0].link(end());
+		n[1].link(n[0]);
 	}
 
 	return result;
@@ -118,14 +132,19 @@ int peg_t::load_grammar()
 	{
 		rules.push_back(rule("grammar"));
 
+		class_t *eof = new class_t();
+		eof->add('\0');
+
 		iterator n[2];
 		n[0] = insert(new stem(load_definition()));
-		n[1] = insert(new eof());
+		n[1] = insert(new stem(load_space()));
+		n[2] = insert(eof);
 
 		rules[result].push(n[0]);
-		n[0].link(n[0]);
 		n[0].link(n[1]);
-		n[1].link(end());
+		n[1].link(n[0]);
+		n[1].link(n[2]);
+		n[2].link(end());
 	}
 
 	return result;
@@ -139,17 +158,21 @@ int peg_t::load_choice()
 	{
 		rules.push_back(rule("choice"));
 
-		iterator n[3];
+		iterator n[5];
 		n[0] = insert(new stem(load_sequence()));
-		n[1] = insert(new keyword("|"));
-		n[2] = insert(new stem(load_sequence()));		
+		n[1] = insert(new stem(load_space()));
+		n[2] = insert(new keyword("|"));
+		n[3] = insert(new stem(load_space()));
+		n[4] = insert(new stem(load_sequence()));		
 
 		rules[result].push(n[0]);
 		n[0].link(n[1]);
 		n[0].link(end());
 		n[1].link(n[2]);
-		n[2].link(n[1]);
-		n[2].link(end());
+		n[2].link(n[3]);
+		n[3].link(n[4]);
+		n[4].link(n[1]);
+		n[4].link(end());
 	}
 
 	return result;
@@ -163,36 +186,66 @@ int peg_t::load_term()
 	{
 		rules.push_back(rule("term"));
 
-		iterator n[8];
+		iterator n[10];
 		n[0] = insert(new keyword("("));
-		n[1] = insert(new stem(load_choice()));
-		n[2] = insert(new keyword(")"));
-		n[3] = insert(new stem(load_string()));
-		n[4] = insert(new stem(load_instance()));
-		n[5] = insert(new keyword("\?"));
-		n[6] = insert(new keyword("*"));
-		n[7] = insert(new keyword("+"));
+		n[1] = insert(new stem(load_space()));
+		n[2] = insert(new stem(load_choice()));
+		n[3] = insert(new stem(load_space()));
+		n[4] = insert(new keyword(")"));
+		n[5] = insert(new stem(load_string()));
+		n[6] = insert(new stem(load_instance()));
+		n[7] = insert(new keyword("\?"));
+		n[8] = insert(new keyword("*"));
+		n[9] = insert(new keyword("+"));
 
 		rules[result].push(n[0]);
-		rules[result].push(n[3]);
-		rules[result].push(n[4]);
+		rules[result].push(n[5]);
+		rules[result].push(n[6]);
 		n[0].link(n[1]);
 		n[1].link(n[2]);
-		n[2].link(n[5]);
-		n[2].link(n[6]);
-		n[2].link(n[7]);
-		n[2].link(end());
-		n[3].link(n[5]);
-		n[3].link(n[6]);
-		n[3].link(n[7]);
-		n[3].link(end());
-		n[4].link(n[5]);
-		n[4].link(n[6]);
+		n[2].link(n[3]);
+		n[3].link(n[4]);
 		n[4].link(n[7]);
+		n[4].link(n[8]);
+		n[4].link(n[9]);
 		n[4].link(end());
+		n[5].link(n[7]);
+		n[5].link(n[8]);
+		n[5].link(n[9]);
 		n[5].link(end());
+		n[6].link(n[7]);
+		n[6].link(n[8]);
+		n[6].link(n[9]);
 		n[6].link(end());
 		n[7].link(end());
+		n[8].link(end());
+		n[9].link(end());
+	}
+
+	return result;
+}
+
+int peg_t::load_space()
+{
+	static int result = (int)rules.size();
+
+	if (result >= (int)rules.size())
+	{
+		rules.push_back(rule("-", false));
+
+		class_t *space = new class_t();
+		space->add(' ');
+		space->add('\t');
+		space->add('\n');
+		space->add('\r');
+		
+		iterator n[4];
+		n[0] = insert(space);
+		
+		rules[result].push(n[0]);
+		rules[result].push(end());
+		n[0].link(n[0]);
+		n[0].link(end());
 	}
 
 	return result;

@@ -7,10 +7,9 @@
 lex::lex()
 {
 	ptr = NULL;
-	offset = -1;
-	line = -1;
-	prev = '\0';
-	curr = '\n';
+	offset = 0;
+	line = 0;
+	lines.push_back(0);
 }
 
 lex::~lex()
@@ -36,27 +35,28 @@ void lex::close()
 {
 	fclose(ptr);
 	ptr = NULL;
-	offset = -1;
-	line = -1;
-	prev = '\0';
-	curr = '\n';
+	offset = 0;
+	line = 0;
 	lines.clear();
+	lines.push_back(0);
 }
 
 int lex::lineof(intptr_t pos) const
 {
-	return *upper_bound(lines.begin(), lines.end(), pos);
+	vector<intptr_t>::const_iterator i = upper_bound(lines.begin(), lines.end(), pos)-1;
+	return i-lines.begin();
 }
 
 void lex::moveto(intptr_t pos)
 {
+	if (pos < 0)
+		pos = 0;
+
 	if (offset <= pos && lines.back() <= pos)
 	{
 		if (offset < lines.back())
 		{
-			fseek(ptr, lines.back()-1, SEEK_SET);
-			prev = '\n';
-			curr = fgetc(ptr);
+			fseek(ptr, lines.back(), SEEK_SET);
 			offset = lines.back();
 			line = lines.size()-1;
 		}
@@ -64,35 +64,20 @@ void lex::moveto(intptr_t pos)
 		while (not feof(ptr) and offset < pos)
 			get();
 	}
-	else if (pos > 0)
-	{
-		fseek(ptr, pos-1, SEEK_SET);
-		prev = fgetc(ptr);
-		curr = fgetc(ptr);
-		offset = pos;
-		line = lineof(pos);
-	}
-	else if (pos >= 0)
-	{
-		fseek(ptr, pos, SEEK_SET);
-		prev = '\n';
-		curr = fgetc(ptr);
-		offset = pos;
-		line = lineof(pos);
-	}
 	else
 	{
-		fseek(ptr, 0, SEEK_SET);
-		prev = '\0';
-		curr = '\n';
-		offset = -1;
-		line = -1;
+		fseek(ptr, pos, SEEK_SET);
+		offset = pos;
+		line = lineof(pos);
 	}
 }
 
 string lex::getline(intptr_t line)
 {
-	return read(lines[line], lines[line+1]);
+	if (line+1 >= (int)lines.size())
+		return string();
+	else
+		return read(lines[line], lines[line+1]);
 }
 
 string lex::read(intptr_t begin, intptr_t end)
@@ -100,7 +85,7 @@ string lex::read(intptr_t begin, intptr_t end)
 	string result(end-begin+1, '\0');
 	fseek(ptr, begin, SEEK_SET);
 	fread(&result[0], sizeof(char), result.size()-1, ptr);
-	fseek(ptr, offset+1, SEEK_SET);
+	fseek(ptr, offset, SEEK_SET);
 	return result;
 }
 
@@ -111,17 +96,26 @@ bool lex::eof()
 
 char lex::get()
 {
-	prev = curr;
-	curr = fgetc(ptr);
-	++offset;
-
-	if (prev == '\n')
+	int curr = fgetc(ptr);
+	if (curr != EOF)
 	{
-		++line;
-		if (line >= (intptr_t)lines.size())
-			lines.push_back(offset);
-	}
+		++offset;
 
-	return curr;
+		if (curr == '\n')
+		{
+			++line;
+			if (line >= (intptr_t)lines.size())
+				lines.push_back(offset);
+		}
+	
+		return curr;
+	}
+	else if (lines.back() != offset)
+	{
+		++offset;
+		lines.push_back(offset);
+	}
+	
+	return 0;
 }
 

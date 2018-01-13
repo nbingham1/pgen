@@ -15,7 +15,6 @@ struct lex
 	vector<intptr_t> lines;
 	intptr_t offset;
 	intptr_t line;
-	char prev, curr;
 	
 	operator bool();
 

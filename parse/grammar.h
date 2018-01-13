@@ -204,11 +204,13 @@ struct grammar
 	struct fork
 	{
 		fork();
-		fork(int frame, const grammar &gram, int index = 0);
-		fork(int frame, const_iterator point);
+		fork(const grammar &gram, int rule, int parent, intptr_t offset);
+		fork(const_iterator point, int parent, intptr_t offset);
 		~fork();
 
 		int rule;
+		bool keep;
+
 		int parent;
 		token tree;
 		const_iterator curr;
@@ -219,18 +221,18 @@ struct grammar
 	struct forks
 	{
 		forks();
-		forks(const grammar &gram, int index = 0);
+		forks(const grammar &gram, int rule, intptr_t offset);
 		~forks();
 
 		vector<fork> elems;
 		int frame;
 
 		operator bool();
-		void push(const_iterator point);
+		void push(const_iterator point, intptr_t offset);
 		void pop();
 		
-		void push_frame(const grammar &gram, int index = 0);
-		void pop_frame();
+		void push_frame(const grammar &gram, int rule, intptr_t offset);
+		void pop_frame(intptr_t offset);
 		bool rewind(const grammar &gram, lex &lexer, vector<message> *msgs = NULL);
 		void advance();
 
@@ -290,10 +292,3 @@ struct keyword : grammar::leaf
 	grammar::parsing parse(lex &lexer) const;
 };
 
-struct eof : grammar::leaf
-{
-	eof();
-	~eof();
-
-	grammar::parsing parse(lex &lexer) const;
-};
