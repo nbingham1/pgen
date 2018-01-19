@@ -23,11 +23,20 @@ parsing stem::parse(lexer_t &lexer) const
 	return result;
 }
 
+grammar_t::symbol *stem::clone(int rule_offset) const
+{
+	return new stem(index + rule_offset, keep);
+}
+
 std::string stem::emit() const
 {
 	std::stringstream result;
 	result << "stem(" << index << ", " << keep << ")";
 	return result.str();
+}
+
+character::character()
+{
 }
 
 character::character(std::string match)
@@ -148,6 +157,15 @@ parsing character::parse(lexer_t &lexer) const
 	return result;
 }
 
+grammar_t::symbol *character::clone(int rule_offset) const
+{
+	character *result = new character();
+	result->ranges = ranges;
+	result->invert = invert;
+	result->keep = keep;
+	return result;
+}
+
 std::string character::emit() const
 {
 	std::stringstream result;
@@ -192,6 +210,11 @@ parsing keyword::parse(lexer_t &lexer) const
 	return result;
 }
 
+grammar_t::symbol *keyword::clone(int rule_offset) const
+{
+	return new keyword(value);
+}
+
 std::string keyword::emit() const
 {
 	std::stringstream result;
@@ -232,6 +255,11 @@ parsing instance::parse(lexer_t &lexer) const
 		result.msgs.push_back(message(message::error, "expected instance.", lexer, true, result.tree.begin, result.tree.end));
 
 	return result;
+}
+
+grammar_t::symbol *instance::clone(int rule_offset) const
+{
+	return new instance();
 }
 
 std::string instance::emit() const
@@ -284,6 +312,11 @@ parsing text::parse(lexer_t &lexer) const
 	return result;
 }
 
+grammar_t::symbol *text::clone(int rule_offset) const
+{
+	return new text();
+}
+
 std::string text::emit() const
 {
 	std::stringstream result;
@@ -321,6 +354,11 @@ parsing whitespace::parse(lexer_t &lexer) const
 	return result;
 }
 
+grammar_t::symbol *whitespace::clone(int rule_offset) const
+{
+	return new whitespace();
+}
+
 std::string whitespace::emit() const
 {
 	std::stringstream result;
@@ -356,6 +394,11 @@ parsing integer::parse(lexer_t &lexer) const
 		result.msgs.push_back(message(message::error, "expected integer.", lexer, true, result.tree.begin, result.tree.end));
 
 	return result;
+}
+
+grammar_t::symbol *integer::clone(int rule_offset) const
+{
+	return new integer();
 }
 
 std::string integer::emit() const
@@ -406,6 +449,11 @@ parsing character_class::parse(lexer_t &lexer) const
 		result.msgs.push_back(message(message::error, "dangling character_class.", lexer, true, result.tree.begin, result.tree.end));
 
 	return result;
+}
+
+grammar_t::symbol *character_class::clone(int rule_offset) const
+{
+	return new character_class();
 }
 
 std::string character_class::emit() const

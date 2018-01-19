@@ -55,6 +55,7 @@ struct grammar_t
 		links prev;
 
 		virtual parsing parse(lexer_t &lexer) const = 0;
+		virtual symbol *clone(int rule_offset = 0) const = 0;
 		virtual std::string emit() const = 0;
 	};
 
@@ -166,8 +167,11 @@ struct grammar_t
 	const_iterator rbegin() const;
 	const_iterator end() const;
 	const_iterator rend() const;
+
+	void import(const grammar_t &gram);
+
+	parsing parse(lexer_t &lexer, int index = 0);
 };
 
-parsing parse(const grammar_t &grammar, lexer_t &lexer, int index = 0);
 
 }

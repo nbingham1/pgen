@@ -12,7 +12,7 @@ int main(int argc, char **argv)
 		lexer.open(argv[i]);
 		parse::peg_t peg;
 
-		parse::parsing result = parse::parse(peg, lexer, peg.load_peg());
+		parse::parsing result = peg.parse(lexer);
 		if (result.msgs.size() == 0)
 		{
 			parse::generic_t gen;

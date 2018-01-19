@@ -1,5 +1,6 @@
 #include <parse/grammar.h>
 #include <parse/branch.h>
+#include <map>
 
 namespace parse
 {
@@ -505,10 +506,54 @@ grammar_t::const_iterator grammar_t::rend() const
 	return const_iterator(&left);
 }
 
-parsing parse(const grammar_t &grammar, lexer_t &lexer, int index)
+void grammar_t::import(const grammar_t &gram)
+{
+	std::map<const node*, node*> nodes;
+
+	// Populate the list of nodes
+	for (const_iterator i = gram.begin(); i != gram.end(); i++)
+	{
+		iterator j = insert(i->clone((int)rules.size()));
+		nodes.insert(std::pair<const node*, node*>(i.loc, j.loc));
+	}
+
+	// Link them all together
+	for (std::map<const node*, node*>::iterator m = nodes.begin(); m != nodes.end(); m++)
+	{
+		const_iterator i(m->first);
+		iterator j(m->second);
+		const_links ilinks = i.next();
+	
+		for (const_link_iterator li = ilinks.begin(); li != ilinks.end(); li++)
+		{
+			std::map<const node*, node*>::iterator n = nodes.find(li->loc);
+			if (n != nodes.end())
+				j.link(n->second);
+			else
+				printf("link not found\n");
+		}
+	}
+
+	// Populate the list of rules
+	for (int i = 0; i < (int)gram.rules.size(); i++)
+	{
+		rules.push_back(rule(gram.rules[i].name, gram.rules[i].keep));
+		for (const_link_const_iterator li = gram.rules[i].start.begin(); li != gram.rules[i].start.end(); li++)
+		{
+			std::map<const node*, node*>::iterator n = nodes.find(li->loc);
+			if (n != nodes.end())
+				rules.back().start.push_back(n->second);
+			else
+				printf("link not found\n");
+		}
+	}
+}
+
+
+parsing grammar_t::parse(lexer_t &lexer, int index)
 {
 	parsing best;
-	branches_t stack(grammar.rules[index], lexer.offset);
+	branches_t stack(rules[index], lexer.offset);
 
 	while (stack)
 	{
@@ -519,7 +564,7 @@ parsing parse(const grammar_t &grammar, lexer_t &lexer, int index)
 			parsing result = stack.curr()->parse(lexer);
 
 			if (result.stem >= 0)
-				stack.push_frame(grammar.rules[result.stem], lexer.offset, stack.curr()->keep and grammar.rules[result.stem].keep);
+				stack.push_frame(rules[result.stem], lexer.offset, stack.curr()->keep and rules[result.stem].keep);
 			else
 			{
 				//printf("Parsing: %s\n", result.tree.type.c_str());

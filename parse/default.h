@@ -13,11 +13,13 @@ struct stem : grammar_t::symbol
 	int index;
 
 	parsing parse(lexer_t &lexer) const;
+	symbol *clone(int rule_offset = 0) const;
 	std::string emit() const;
 };
 
 struct character : grammar_t::symbol
 {
+	character();
 	character(std::string match);
 	~character();
 
@@ -29,6 +31,7 @@ struct character : grammar_t::symbol
 	std::string name() const;
 
 	parsing parse(lexer_t &lexer) const;
+	symbol *clone(int rule_offset = 0) const;
 	std::string emit() const;
 };
 
@@ -40,6 +43,7 @@ struct keyword : grammar_t::symbol
 	std::string value;
 
 	parsing parse(lexer_t &lexer) const;
+	symbol *clone(int rule_offset = 0) const;
 	std::string emit() const;
 };
 
@@ -49,6 +53,7 @@ struct instance : grammar_t::symbol
 	~instance();
 
 	parsing parse(lexer_t &lexer) const;
+	symbol *clone(int rule_offset = 0) const;
 	std::string emit() const;
 };
 
@@ -58,6 +63,7 @@ struct text : grammar_t::symbol
 	~text();
 
 	parsing parse(lexer_t &lexer) const;
+	symbol *clone(int rule_offset = 0) const;
 	std::string emit() const;
 };
 
@@ -67,6 +73,7 @@ struct whitespace : grammar_t::symbol
 	~whitespace();
 
 	parsing parse(lexer_t &lexer) const;
+	symbol *clone(int rule_offset = 0) const;
 	std::string emit() const;
 };
 
@@ -76,6 +83,7 @@ struct integer : grammar_t::symbol
 	~integer();
 
 	parsing parse(lexer_t &lexer) const;
+	symbol *clone(int rule_offset = 0) const;
 	std::string emit() const;
 };
 
@@ -85,6 +93,7 @@ struct character_class : grammar_t::symbol
 	~character_class();
 	
 	parsing parse(lexer_t &lexer) const;
+	symbol *clone(int rule_offset = 0) const;
 	std::string emit() const;
 };
 
