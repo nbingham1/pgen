@@ -18,8 +18,8 @@ int main(int argc, char **argv)
 			parse::generic_t gen;
 			gen.load(lexer, result.tree);
 			std::string name = argv[i];
-			if (name.substr(name.size()-5) == ".gram")
-				name = name.substr(0, name.size()-5);
+			if (name.substr(name.size()-4) == ".peg")
+				name = name.substr(0, name.size()-4);
 
 			std::ofstream header(name + ".h");
 			std::ofstream source(name + ".cpp");
