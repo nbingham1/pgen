@@ -1,0 +1,6 @@
+regex = "/" sequence "/";
+sequence = term+;
+term = ("(" choice ")" | class | character) ("?" | "*" | "+")?;
+choice = sequence ("|" sequence)*;
+class = "[" "^"? (character "-" character | character)+ "]";
+character = [^[\]()*+?/\\\\\0] | "\\" [^\0];

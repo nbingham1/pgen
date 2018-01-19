@@ -1,0 +1,6 @@
+peg = definition* _ [\0];
+definition = instance _ "=" _ choice _ ";";
+choice = sequence (_ "|" _ sequence)*;
+sequence = term (_ term)*;
+term = ("(" _ choice _ ")" | text | instance | character_class) (_ ("?" | "*" | "+"))?;
+

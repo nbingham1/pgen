@@ -19,7 +19,7 @@ int peg_t::load_peg()
 
 	if (result >= (int)rules.size())
 	{
-		rules.push_back(rule("grammar"));
+		rules.push_back(rule("peg"));
 
 		iterator n[2];
 		n[0] = insert(new stem(load_definition()));

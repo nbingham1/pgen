@@ -81,6 +81,8 @@ generic_t::segment generic_t::load_term(std::map<std::string, int> &definitions,
 				term = insert(new whitespace());
 			else if (name == "integer")
 				term = insert(new integer());
+			else if (name == "character_class")
+				term = insert(new character_class());
 			else
 			{
 				std::map<std::string, int>::iterator definition = definitions.find(name);
@@ -156,7 +158,7 @@ void generic_t::load_definition(std::map<std::string, int> &definitions, lexer_t
 	if (token.tokens.size() == 4) {
 		std::string name = lexer.read(token.tokens[0].begin, token.tokens[0].end);
 		std::map<std::string, int>::iterator result = definitions.lower_bound(name);
-		if (result->first != name) {
+		if (result == definitions.end() || result->first != name) {
 			result = definitions.insert(result, std::pair<std::string, int>(name, (int)rules.size()));
 			rules.push_back(rule(name));
 		}
