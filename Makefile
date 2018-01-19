@@ -1,49 +1,61 @@
-CXXFLAGS	 =  -g -O2 -Wall -fmessage-length=0 -I.
+CXXFLAGS     = -g -O2 -Wall -fmessage-length=0 -I. -L.
 # -g -fprofile-arcs -ftest-coverage
-SOURCES		 := $(wildcard parse/*.cpp)
-TESTS        := $(wildcard test/*.cpp)
-OBJECTS		 := $(SOURCES:%.cpp=%.o)
-TEST_OBJECTS := $(TESTS:.cpp=.o)
-DEPS         := $(OBJECTS:.o=.d)
-TEST_DEPS    := $(TEST_OBJECTS:.o=.d)
+LSOURCES     := $(wildcard parse/*.cpp)
+BSOURCES     := $(wildcard src/*.cpp)
+TSOURCES     := $(wildcard test/*.cpp)
+LOBJECTS     := $(LSOURCES:.cpp=.o)
+BOBJECTS     := $(BSOURCES:.cpp=.o)
+TOBJECTS     := $(TSOURCES:.cpp=.o)
+LDEPS        := $(LOBJECTS:.o=.d)
+BDEPS        := $(BOBJECTS:.o=.d)
+TDEPS        := $(TOBJECTS:.o=.d)
 GTEST        := ../googletest
-GTEST_I      := -I$(GTEST)/include -I.
-GTEST_L      := -L$(GTEST) -L.
-TARGET		 = libparse.a
-TEST_TARGET  = test_parse
+GTEST_I      := -I$(GTEST)/include
+GTEST_L      := -L$(GTEST)
+LTARGET      = libparse.a
+BTARGET      = pgen
+TTARGET      = test_parse
 
--include $(DEPS)
--include $(TEST_DEPS)
+-include $(LDEPS)
+-include $(BDEPS)
+-include $(TDEPS)
 
-all: lib
+all: lib pgen
 
-lib: $(TARGET)
+lib: $(LTARGET)
 
-test: lib $(TEST_TARGET)
+test: lib pgen $(TTARGET)
 
 check: test
-	./$(TEST_TARGET)
+	./$(TTARGET)
 
-$(TARGET): $(OBJECTS)
-	ar rvs $(TARGET) $(OBJECTS)
+$(LTARGET): $(LOBJECTS)
+	ar rvs $(LTARGET) $(LOBJECTS)
 
 parse/%.o: parse/%.cpp 
 	$(CXX) $(CXXFLAGS) -MM -MF $(patsubst %.o,%.d,$@) -MT $@ -c $<
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(TEST_TARGET): $(TEST_OBJECTS) test/gtest_main.o
-	$(CXX) $(CXXFLAGS) $(GTEST_L) $^ -pthread -lparse -lstdcore -lgtest -o $(TEST_TARGET)
+$(TTARGET): $(TOBJECTS) test/gtest_main.o
+	$(CXX) $(CXXFLAGS) $(GTEST_L) $^ -pthread -lparse -lstdcore -lgtest -o $(TTARGET)
 
 test/%.o: test/%.cpp
 	$(CXX) $(CXXFLAGS) $(GTEST_I) -MM -MF $(patsubst %.o,%.d,$@) -MT $@ -c $<
 	$(CXX) $(CXXFLAGS) $(GTEST_I) $< -c -o $@
-	
+
+$(BTARGET): $(BOBJECTS)
+	$(CXX) $(CXXFLAGS) $(BOBJECTS) -o $(BTARGET) -lparse
+
+src/%.o: src/%.cpp 
+	$(CXX) $(CXXFLAGS) -MM -MF $(patsubst %.o,%.d,$@) -MT $@ -c $<
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
 test/gtest_main.o: $(GTEST)/src/gtest_main.cc
 	$(CXX) $(CXXFLAGS) $(GTEST_I) $< -c -o $@
 
 clean:
-	rm -f parse/*.o test/*.o
-	rm -f parse/*.d test/*.d
-	rm -f parse/*.gcda test/*.gcda
-	rm -f parse/*.gcno test/*.gcno
-	rm -f $(TARGET) $(TEST_TARGET)
+	rm -f parse/*.o test/*.o src/*.o
+	rm -f parse/*.d test/*.d src/*.d
+	rm -f parse/*.gcda test/*.gcda src/*.gcda
+	rm -f parse/*.gcno test/*.gcno src/*.gcno
+	rm -f $(LTARGET) $(BTARGET) $(TTARGET)

@@ -7,6 +7,9 @@ namespace parse
 
 struct peg_t : grammar_t
 {
+	peg_t();
+	~peg_t();
+
 	int load_peg();
 	int load_definition();
 	int load_choice();

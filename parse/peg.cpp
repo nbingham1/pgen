@@ -4,6 +4,15 @@
 namespace parse
 {
 
+peg_t::peg_t()
+{
+	load_peg();
+}
+
+peg_t::~peg_t()
+{
+}
+
 int peg_t::load_peg()
 {
 	static int result = (int)rules.size();
