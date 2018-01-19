@@ -53,6 +53,17 @@ else
 }
 ```
 
+The resulting syntax tree is a hierarchy of tokens as defined in [parse/token.h](parse/token.h).
+
+* `std::string type;` is the name of the rule that this token came from.
+* `intptr_t begin, end;` is the byte offset into the file of the beginning and end of the token.
+* `std::vector<token_t> tokens;` is an array of tokens that were found while parsing this rule.
+
+To get the source text of a token, you will need the lexer.
+```
+lexer.read(token.begin, token.end);
+```
+
 If you parsed a grammar with the PEG parser, the abstract syntax tree can be loaded into a grammar
 with [parse/generic.h](parse/generic.h).
 ```
