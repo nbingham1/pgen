@@ -365,4 +365,54 @@ std::string integer::emit() const
 	return result.str();
 }
 
+character_class::character_class()
+{
+	this->keep = true;
+}
+
+character_class::~character_class()
+{
+}
+
+parsing character_class::parse(lexer_t &lexer) const
+{
+	parsing result(lexer.offset);
+	result.tree.type = "character_class";
+
+	char c = lexer.get();
+	++result.tree.end;
+	if (c != '[')
+	{
+		lexer.unget();
+		result.msgs.push_back(message(message::error, "expected character_class.", lexer, true, result.tree.begin, result.tree.end));
+		return result;
+	}
+
+	c = lexer.get();
+	++result.tree.end;
+	bool escape = false;
+	while ((escape or c != ']') and c != 0)
+	{
+		if (escape)
+			escape = false;
+		else if (c == '\\')
+			escape = true;
+
+		c = lexer.get();
+		++result.tree.end;
+	}
+
+	if (c == 0)
+		result.msgs.push_back(message(message::error, "dangling character_class.", lexer, true, result.tree.begin, result.tree.end));
+
+	return result;
+}
+
+std::string character_class::emit() const
+{
+	std::stringstream result;
+	result << "character_class()";
+	return result.str();
+}
+
 }

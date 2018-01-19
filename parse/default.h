@@ -79,4 +79,13 @@ struct integer : grammar_t::symbol
 	std::string emit() const;
 };
 
+struct character_class : grammar_t::symbol
+{
+	character_class();
+	~character_class();
+	
+	parsing parse(lexer_t &lexer) const;
+	std::string emit() const;
+};
+
 }

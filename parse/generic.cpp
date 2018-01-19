@@ -68,6 +68,9 @@ generic_t::segment generic_t::load_term(std::map<std::string, int> &definitions,
 		if (i->type == "text") {
 			std::string word = lexer.read(i->begin, i->end);
 			term = insert(new keyword(word.substr(1, word.size()-2)));
+		} else if (i->type == "character_class") {
+			std::string word = lexer.read(i->begin, i->end);
+			term = insert(new character(word.substr(1, word.size()-2)));
 		} else if (i->type == "instance") {
 			std::string name = lexer.read(i->begin, i->end);
 			if (name == "instance")
@@ -78,8 +81,6 @@ generic_t::segment generic_t::load_term(std::map<std::string, int> &definitions,
 				term = insert(new whitespace());
 			else if (name == "integer")
 				term = insert(new integer());
-			else if (name == "eof")
-				term = insert(new character("\\0"));
 			else
 			{
 				std::map<std::string, int>::iterator definition = definitions.find(name);

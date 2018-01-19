@@ -131,32 +131,38 @@ int peg_t::load_term()
 		n[4] = insert(new keyword(")"));
 		n[5] = insert(new text());
 		n[6] = insert(new instance());
-		n[7] = insert(new keyword("\?"));
-		n[8] = insert(new keyword("*"));
-		n[9] = insert(new keyword("+"));
+		n[7] = insert(new character_class());
+		n[8] = insert(new keyword("\?"));
+		n[9] = insert(new keyword("*"));
+		n[10] = insert(new keyword("+"));
 
 		rules[result].push(n[0]);
 		rules[result].push(n[5]);
 		rules[result].push(n[6]);
+		rules[result].push(n[7]);
 		n[0].link(n[1]);
 		n[1].link(n[2]);
 		n[2].link(n[3]);
 		n[3].link(n[4]);
-		n[4].link(n[7]);
 		n[4].link(n[8]);
 		n[4].link(n[9]);
+		n[4].link(n[10]);
 		n[4].link(end());
-		n[5].link(n[7]);
 		n[5].link(n[8]);
 		n[5].link(n[9]);
+		n[5].link(n[10]);
 		n[5].link(end());
-		n[6].link(n[7]);
 		n[6].link(n[8]);
 		n[6].link(n[9]);
+		n[6].link(n[10]);
 		n[6].link(end());
+		n[7].link(n[8]);
+		n[7].link(n[9]);
+		n[7].link(n[10]);
 		n[7].link(end());
 		n[8].link(end());
 		n[9].link(end());
+		n[10].link(end());
 	}
 
 	return result;
