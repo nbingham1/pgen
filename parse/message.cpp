@@ -1,4 +1,7 @@
-#include "message.h"
+#include <parse/message.h>
+
+namespace parse
+{
 
 message::message()
 {
@@ -10,7 +13,7 @@ message::message()
 	line = -1;
 }
 
-message::message(int type, string txt)
+message::message(int type, std::string txt)
 {
 	this->type = type;
 	this->txt = txt;
@@ -21,7 +24,7 @@ message::message(int type, string txt)
 	line = -1;
 }
 
-message::message(int type, string txt, lex &lexer, bool has_ctx, intptr_t begin, intptr_t end)
+message::message(int type, std::string txt, lexer_t &lexer, bool has_ctx, intptr_t begin, intptr_t end)
 {
 	this->type = type;
 	this->txt = txt;
@@ -35,14 +38,15 @@ message::message(int type, string txt, lex &lexer, bool has_ctx, intptr_t begin,
 
 	offset = begin;
 	length = end - begin;
-	printf("%ld\n", begin);
 	line = lexer.lineof(begin);
-	printf("%ld/%d\n", line, (int)lexer.lines.size());
 	column = offset - lexer.lines[line];
 
 	if (has_ctx)
 	{
 		ctx = lexer.getline(line);
+		if (ctx.back() != '\n')
+			ctx.push_back('\n');
+
 		for (int i = 0; i < column; i++)
 		{
 			if (ctx[i] < 32 || ctx[i] == 127)
@@ -50,8 +54,10 @@ message::message(int type, string txt, lex &lexer, bool has_ctx, intptr_t begin,
 			else
 				ctx.push_back(' ');
 		}
-		for (int i = 0; i < length; i++)
-			ctx += '^';
+		ctx += '^';
+		for (int i = 0; i < length-1; i++)
+			ctx += '~';
+		ctx += '\n';
 	}
 }
 
@@ -59,7 +65,7 @@ message::~message()
 {
 }
 
-string message::typestr()
+std::string message::typestr()
 {
 	switch (type)
 	{
@@ -90,4 +96,6 @@ void message::emit()
 	printf("%s: %s\n", typestr().c_str(), txt.c_str());
 	if (ctx.size() > 0)
 		printf("%s", ctx.c_str());
+}
+
 }

@@ -4,59 +4,37 @@
 #include <string>
 #include <algorithm>
 
-#include "message.h"
-#include "lex.h"
+#include <parse/token.h>
+#include <parse/message.h>
+#include <parse/lexer.h>
 
-extern int classid_count;
-
-template <typename T>
-int classid(T *inst = (T*)0)
+namespace parse
 {
-	static int id = classid_count++;
-	return id;
-}
 
-struct grammar
+struct parsing
+{
+	parsing(intptr_t begin = -1, intptr_t end = -1);
+	~parsing();
+
+	int stem;
+	token_t tree;
+	std::vector<message> msgs;
+
+	void emit(lexer_t &lexer);
+};
+
+struct grammar_t
 {
 	struct iterator;
 	struct const_iterator;
 
-	typedef vector<iterator> links;
-	typedef vector<const_iterator> const_links;
-	typedef typename vector<iterator>::iterator link_iterator;
-	typedef typename vector<const_iterator>::iterator const_link_iterator;
-	typedef typename vector<iterator>::const_iterator link_const_iterator;
-	typedef typename vector<const_iterator>::const_iterator const_link_const_iterator;
-
-	struct token
-	{
-		token(intptr_t begin = -1, intptr_t end = -1);
-		~token();
-
-		string type;
-		intptr_t begin;
-		intptr_t end;
-		vector<token> tokens;
-
-		operator bool();
-		void append(const token &t);
-		void extend(const token &t);
-		void clear();
+	typedef std::vector<iterator> links;
+	typedef std::vector<const_iterator> const_links;
+	typedef typename std::vector<iterator>::iterator link_iterator;
+	typedef typename std::vector<const_iterator>::iterator const_link_iterator;
+	typedef typename std::vector<iterator>::const_iterator link_const_iterator;
+	typedef typename std::vector<const_iterator>::const_iterator const_link_const_iterator;
 		
-		void emit(lex &lexer, string tab = "");
-	};
-
-	struct parsing
-	{
-		parsing(intptr_t begin = -1, intptr_t end = -1);
-		~parsing();
-
-		token tree;
-		vector<message> msgs;
-	
-		void emit(lex &lexer);
-	};
-
 	struct node
 	{
 		node();
@@ -68,54 +46,20 @@ struct grammar
 
 	struct symbol : node 
 	{
-		symbol();
+		symbol(bool keep = true);
 		virtual ~symbol();
 
-		int id;
+		bool keep;
+		
 		links next;
 		links prev;
 
-		template <typename T>
-		bool is(T *value = (T*)0) const
-		{
-			return id == classid<T>();
-		}
-
-		template <typename T>
-		T* as(T *value = (T*)0)
-		{
-			return (T*)this;
-		}
-
-		template <typename T>
-		const T* as(T *value = (T*)0) const
-		{
-			return (const T*)this;
-		}
-	};
-
-	struct leaf : symbol
-	{
-		leaf();
-		virtual ~leaf();
-
-		virtual parsing parse(lex &lexer) const = 0;
-	};
-
-	struct stem : symbol
-	{
-		stem();
-		stem(int reference);
-		virtual ~stem();
-
-		int reference;
-
-		virtual int setup(lex &lexer) const;
+		virtual parsing parse(lexer_t &lexer) const = 0;
 	};
 
 	struct iterator
 	{
-		friend class grammar;
+		friend class grammar_t;
 		friend class const_iterator;
 		
 		node *loc;
@@ -156,7 +100,7 @@ struct grammar
 
 	struct const_iterator
 	{
-		friend class grammar;
+		friend class grammar_t;
 		friend class iterator;
 		
 		const node *loc;
@@ -191,64 +135,22 @@ struct grammar
 	struct rule
 	{
 		rule();
-		rule(string name, bool keep = true);
+		rule(std::string name, bool keep = true);
 		~rule();
 
-		string name;
+		std::string name;
+		const_links start;
 		bool keep;
-		vector<const_iterator> start;
 
 		void push(const_iterator it);
 	};
 	
-	struct fork
-	{
-		fork();
-		fork(const grammar &gram, int rule, int parent, intptr_t offset);
-		fork(const_iterator point, int parent, intptr_t offset);
-		~fork();
-
-		int rule;
-		bool keep;
-
-		int parent;
-		token tree;
-		const_iterator curr;
-		int branch;
-		const_links branches;
-	};
-
-	struct forks
-	{
-		forks();
-		forks(const grammar &gram, int rule, intptr_t offset);
-		~forks();
-
-		vector<fork> elems;
-		int frame;
-
-		operator bool();
-		void push(const_iterator point, intptr_t offset);
-		void pop();
-		
-		void push_frame(const grammar &gram, int rule, intptr_t offset);
-		void pop_frame(intptr_t offset);
-		bool rewind(const grammar &gram, lex &lexer, vector<message> *msgs = NULL);
-		void advance();
-
-		fork &back();
-		const_iterator &curr();
-
-		token collapse_frame(int &index);
-		token collapse();
-	};
-
 	node left;
 	node right;
-	vector<rule> rules;  
+	std::vector<rule> rules;  
 
-	grammar();
-	virtual ~grammar();
+	grammar_t();
+	virtual ~grammar_t();
 
 	void clear();
 	iterator insert(symbol *sym);
@@ -262,33 +164,8 @@ struct grammar
 	const_iterator rbegin() const;
 	const_iterator end() const;
 	const_iterator rend() const;
-
-	parsing parse(lex &lexer, int index = 0);
 };
 
-struct class_t : grammar::leaf
-{
-	class_t();
-	~class_t();
+parsing parse(const grammar_t &grammar, lexer_t &lexer, int index = 0);
 
-	vector<pair<char, char> > ranges;
-	bool invert;
-
-	void add(char start);
-	void add(char start, char end);
-
-	string name() const;
-	grammar::parsing parse(lex &lexer) const;
-};
-
-struct keyword : grammar::leaf
-{
-	keyword();
-	keyword(string value);
-	~keyword();
-
-	string value;
-
-	grammar::parsing parse(lex &lexer) const;
-};
-
+}
