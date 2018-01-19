@@ -55,6 +55,7 @@ struct grammar_t
 		links prev;
 
 		virtual parsing parse(lexer_t &lexer) const = 0;
+		virtual std::string emit() const = 0;
 	};
 
 	struct iterator
@@ -155,6 +156,7 @@ struct grammar_t
 	void clear();
 	iterator insert(symbol *sym);
 
+	int size();
 	iterator begin();
 	iterator rbegin();
 	iterator end();

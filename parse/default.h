@@ -13,6 +13,7 @@ struct stem : grammar_t::symbol
 	int index;
 
 	parsing parse(lexer_t &lexer) const;
+	std::string emit() const;
 };
 
 struct character : grammar_t::symbol
@@ -28,6 +29,7 @@ struct character : grammar_t::symbol
 	std::string name() const;
 
 	parsing parse(lexer_t &lexer) const;
+	std::string emit() const;
 };
 
 struct keyword : grammar_t::symbol
@@ -38,6 +40,7 @@ struct keyword : grammar_t::symbol
 	std::string value;
 
 	parsing parse(lexer_t &lexer) const;
+	std::string emit() const;
 };
 
 struct instance : grammar_t::symbol
@@ -46,6 +49,7 @@ struct instance : grammar_t::symbol
 	~instance();
 
 	parsing parse(lexer_t &lexer) const;
+	std::string emit() const;
 };
 
 struct text : grammar_t::symbol
@@ -54,6 +58,7 @@ struct text : grammar_t::symbol
 	~text();
 
 	parsing parse(lexer_t &lexer) const;
+	std::string emit() const;
 };
 
 struct whitespace : grammar_t::symbol
@@ -62,6 +67,7 @@ struct whitespace : grammar_t::symbol
 	~whitespace();
 
 	parsing parse(lexer_t &lexer) const;
+	std::string emit() const;
 };
 
 struct integer : grammar_t::symbol
@@ -70,6 +76,7 @@ struct integer : grammar_t::symbol
 	~integer();
 
 	parsing parse(lexer_t &lexer) const;
+	std::string emit() const;
 };
 
 }

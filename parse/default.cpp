@@ -1,5 +1,7 @@
 #include <parse/default.h>
 
+#include <sstream>
+
 namespace parse
 {
 
@@ -19,6 +21,13 @@ parsing stem::parse(lexer_t &lexer) const
 	parsing result(lexer.offset);
 	result.stem = index;
 	return result;
+}
+
+std::string stem::emit() const
+{
+	std::stringstream result;
+	result << "stem(" << index << ", " << keep << ")";
+	return result.str();
 }
 
 character::character(std::string match)
@@ -105,7 +114,6 @@ char character::unescape(char c) const
 std::string character::name() const
 {
 	std::string result;
-	result.push_back('[');
 	if (invert)
 		result.push_back('^');
 	for (int i = 0; i < (int)ranges.size(); i++)
@@ -118,7 +126,6 @@ std::string character::name() const
 			result += escape(ranges[i].second);
 		}
 	}
-	result.push_back(']');
 	return result;
 }
 
@@ -140,6 +147,22 @@ parsing character::parse(lexer_t &lexer) const
 	
 	return result;
 }
+
+std::string character::emit() const
+{
+	std::stringstream result;
+	std::string txt = name();
+	std::string esc;
+	for (int i = 0; i < (int)txt.size(); i++)
+	{
+		if (txt[i] == '\\')
+			esc.push_back('\\');
+		esc.push_back(txt[i]);
+	}
+	result << "character(\"" << esc << "\")";
+	return result.str();
+}
+
 
 keyword::keyword(std::string value)
 {
@@ -167,6 +190,13 @@ parsing keyword::parse(lexer_t &lexer) const
 	}
 
 	return result;
+}
+
+std::string keyword::emit() const
+{
+	std::stringstream result;
+	result << "keyword(\"" << value << "\")";
+	return result.str();
 }
 
 instance::instance()
@@ -202,6 +232,13 @@ parsing instance::parse(lexer_t &lexer) const
 		result.msgs.push_back(message(message::error, "expected instance.", lexer, true, result.tree.begin, result.tree.end));
 
 	return result;
+}
+
+std::string instance::emit() const
+{
+	std::stringstream result;
+	result << "instance()";
+	return result.str();
 }
 
 text::text()
@@ -247,6 +284,13 @@ parsing text::parse(lexer_t &lexer) const
 	return result;
 }
 
+std::string text::emit() const
+{
+	std::stringstream result;
+	result << "text()";
+	return result.str();
+}
+
 whitespace::whitespace()
 {
 	this->keep = false;
@@ -275,6 +319,13 @@ parsing whitespace::parse(lexer_t &lexer) const
 		lexer.unget();
 
 	return result;
+}
+
+std::string whitespace::emit() const
+{
+	std::stringstream result;
+	result << "whitespace()";
+	return result.str();
 }
 
 integer::integer()
@@ -307,5 +358,11 @@ parsing integer::parse(lexer_t &lexer) const
 	return result;
 }
 
+std::string integer::emit() const
+{
+	std::stringstream result;
+	result << "integer()";
+	return result.str();
+}
 
 }

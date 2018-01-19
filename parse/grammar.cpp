@@ -457,6 +457,14 @@ grammar_t::iterator grammar_t::insert(symbol *sym)
 	return iterator(sym);
 }
 
+int grammar_t::size()
+{
+	int count = 0;
+	for (iterator i = begin(); i != end(); i++)
+		++count;
+	return count;
+}
+
 grammar_t::iterator grammar_t::begin()
 {
 	return iterator(left.right);

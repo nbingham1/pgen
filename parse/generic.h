@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <map>
+#include <iostream>
 
 #include <parse/grammar.h>
 
@@ -29,7 +30,7 @@ struct generic_t : grammar_t
 	void load_definition(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token);
 	void load(lexer_t &lexer, const token_t &token);
 
-	//context_t save(string space, string name);
+	void save(std::string space, std::string name, std::ostream &header = std::cout, std::ostream &source = std::cout);
 };
 
 }
