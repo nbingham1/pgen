@@ -549,6 +549,97 @@ void grammar_t::import(const grammar_t &gram)
 	}
 }
 
+void grammar_t::save(std::string space, std::string name, std::ostream &header, std::ostream &source)
+{
+	using std::endl;
+	
+	header << "#pragma once" << endl << endl;
+	header << "#include <parse/grammar.h>" << endl << endl;
+	if (space.size() > 0) {
+		header << "namespace " << space << endl;
+		header << "{" << endl << endl;
+	}
+	header << "struct " << name << "_t : parse::grammar_t" << endl;
+	header << "{" << endl;
+	header << "\t" << name << "_t();" << endl;
+	header << "\t~" << name << "_t();" << endl;
+	header << "};" << endl << endl;
+	if (space.size() > 0) {
+		header << "}" << endl << endl;
+	}	
+
+	source << "#include \"" << name << ".h\"" << endl << endl;
+	source << "#include <parse/default.h>" << endl << endl;
+
+	if (space.size() > 0) {
+		source << "namespace " << space << endl;
+		source << "{" << endl << endl;
+	}
+
+	source << name << "_t::" << name << "_t()" << endl;
+	source << "{" << endl;
+
+	for (int i = 0; i < (int)rules.size(); i++)
+		source << "\trules.push_back(rule(\"" << rules[i].name << "\", " << (rules[i].keep ? "true" : "false") << "));" << endl;
+	source << endl;
+
+	source << "\titerator n[" << size() << "];" << endl; 
+	int index = 0;
+	std::map<const node*, int> indices;
+	for (iterator i = begin(); i != end(); i++)
+	{
+		indices.insert(std::pair<const node*, int>(i.loc, index));
+		source << "\tn[" << index++ << "] = insert(new " << i->emit() << ");" << endl;
+	}
+	source << endl;
+
+	index = 0;
+	for (iterator i = begin(); i != end(); i++)
+	{
+		for (link_iterator j = i.next().begin(); j != i.next().end(); j++)
+		{
+			if (not *j)
+				source << "\tn[" << index << "].link(end());" << endl;
+			else
+			{
+				std::map<const node*, int>::iterator nextindex = indices.find(j->loc);
+				if (nextindex != indices.end())
+					source << "\tn[" << index << "].link(n[" << nextindex->second << "]);" << endl;
+				else
+					printf("link not found from %d\n", index);
+			}
+		}
+		++index;
+	}
+	source << endl;
+
+	for (int i = 0; i < (int)rules.size(); i++)
+	{
+		for (const_link_iterator j = rules[i].start.begin(); j != rules[i].start.end(); j++)
+		{
+			if (not *j)
+				source << "\trules[" << i << "].start.push_back(end());" << endl;
+			else
+			{
+				std::map<const node*, int>::iterator nextindex = indices.find(j->loc);
+				if (nextindex != indices.end())
+					source << "\trules[" << i << "].start.push_back(n[" << nextindex->second << "]);" << endl;
+				else
+					printf("link not found from rule %d\n", i);
+			}
+		}
+	}
+
+	source << "}" << endl << endl;
+
+	source << name << "_t::~" << name << "_t()" << endl;
+	source << "{" << endl;
+	source << "}" << endl << endl;
+	
+	if (space.size() > 0) {
+		source << "}" << endl << endl;
+	}
+}
 
 parsing grammar_t::parse(lexer_t &lexer, int index)
 {

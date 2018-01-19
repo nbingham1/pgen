@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <iostream>
 
 #include <parse/token.h>
 #include <parse/message.h>
@@ -169,6 +170,7 @@ struct grammar_t
 	const_iterator rend() const;
 
 	void import(const grammar_t &gram);
+	void save(std::string space, std::string name, std::ostream &header = std::cout, std::ostream &source = std::cout);
 
 	parsing parse(lexer_t &lexer, int index = 0);
 };
