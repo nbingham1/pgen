@@ -11,11 +11,13 @@ People new to pgen may generate parsers from text files using the `pgen` executa
 
 Source files must be written in the following Parsing Expression Grammar format.
 ```peg
-peg = definition* _ [\0];
+peg = ((definition | import) _)* [\0];
 definition = instance _ "=" _ choice _ ";";
+import = "import" _ text _ ";";
 choice = sequence (_ "|" _ sequence)*;
 sequence = term (_ term)*;
-term = ("(" _ choice _ ")" | text | instance | character_class) (_ ("?" | "*" | "+"))?;
+term = ("(" _ choice _ ")" | text | name | character_class) (_ ("?" | "*" | "+"))?;
+name = instance ("::" instance)?;
 ```
 
 This interface sacrifices some flexibility in favor of speed by using the following basic hard-coded
@@ -24,11 +26,12 @@ symbols defined in [parse/default.h](parse/default.h):
 instance = [a-zA-Z_][a-zA-Z0-9_]*;
 text = "\"" [^\"]* "\"";
 _ = [ \t\n\r]*;
+__ = [ \t]*;
 integer = [0-9]+;
 character_class = "[" [^\]]+ "]";
 ```
 This will generate a header and source file with your grammar. You can use these headers the same way the
-PEG parser in [parse/peg.h](parse/peg.h) is used.
+PEG parser in [parse/peg.h](parse/peg.h) is used in this example.
 
 ```cpp
 // Initialize the grammar
@@ -68,7 +71,7 @@ If you parsed a grammar with the PEG parser, the abstract syntax tree can be loa
 with [parse/generic.h](parse/generic.h).
 ```
 parse::generic_t gen;
-gen.load(lexer, result.tree);
+gen.load_grammar(lexer, result.tree);
 ```
 Once loaded, the
 grammar can be used or saved into a C++ class file for later.
