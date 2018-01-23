@@ -23,11 +23,16 @@ struct generic_t : grammar_t
 		segment &parallel(const segment &s);
 	};
 
-	segment load_term(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token);
-	segment load_sequence(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token);
-	segment load_choice(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token);
-	void load_definition(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token);
-	void load(lexer_t &lexer, const token_t &token);
+	std::map<std::string, int> definitions;
+	std::vector<std::string> imports;
+
+	segment load_term(lexer_t &lexer, const token_t &token);
+	segment load_sequence(lexer_t &lexer, const token_t &token);
+	segment load_choice(lexer_t &lexer, const token_t &token);
+	void load_definition(lexer_t &lexer, const token_t &token);
+	void load_import(lexer_t &lexer, const token_t &token);
+	void load_grammar(lexer_t &lexer, const token_t &token);
+	void load(std::string filename);
 };
 
 }

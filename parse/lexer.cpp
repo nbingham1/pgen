@@ -17,6 +17,7 @@ lexer_t::lexer_t()
 
 lexer_t::~lexer_t()
 {
+	close();
 }
 
 lexer_t::operator bool()
@@ -30,14 +31,27 @@ bool lexer_t::open(std::string filename)
 		return false;
 	
 	name = filename;
+	basename = filename;
+
+	size_t slash = basename.find_last_of('/');
+	if (slash != std::string::npos)
+		basename = basename.substr(slash+1);
+
+	size_t dot = basename.find_last_of('.');
+	if (dot != std::string::npos)
+		basename = basename.substr(0, dot);
+
 	ptr = fopen(name.c_str(), "r");
 	return ptr != NULL;
 }
 
 void lexer_t::close()
 {
-	fclose(ptr);
-	ptr = NULL;
+	if (ptr != NULL)
+	{
+		fclose(ptr);
+		ptr = NULL;
+	}
 	offset = 0;
 	line = 0;
 	lines.clear();

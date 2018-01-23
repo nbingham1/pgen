@@ -13,6 +13,7 @@ struct lexer_t
 
 	FILE *ptr;
 	std::string name;
+	std::string basename;
 	std::vector<intptr_t> lines;
 	intptr_t offset;
 	intptr_t line;

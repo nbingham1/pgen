@@ -69,8 +69,10 @@ struct text : grammar_t::symbol
 
 struct whitespace : grammar_t::symbol
 {
-	whitespace();
+	whitespace(bool brk = true);
 	~whitespace();
+
+	bool brk;
 
 	parsing parse(lexer_t &lexer) const;
 	symbol *clone(int rule_offset = 0) const;

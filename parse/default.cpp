@@ -324,9 +324,10 @@ std::string text::emit() const
 	return result.str();
 }
 
-whitespace::whitespace()
+whitespace::whitespace(bool brk)
 {
 	this->keep = false;
+	this->brk = brk;
 }
 
 whitespace::~whitespace()
@@ -341,8 +342,10 @@ parsing whitespace::parse(lexer_t &lexer) const
 	char c = lexer.get();
 	while ((c == ' ' or
 	       c == '\t' or
-	       c == '\n' or
-	       c == '\r') and c != 0)
+	       (brk and 
+	         (c == '\n' or
+	         c == '\r')
+	       )) and c != 0)
 	{
 		++result.tree.end;
 		c = lexer.get();

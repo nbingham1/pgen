@@ -7,6 +7,7 @@
 
 #include <parse/generic.h>
 #include <parse/default.h>
+#include <parse/peg.h>
 
 namespace parse
 {
@@ -57,11 +58,11 @@ generic_t::segment &generic_t::segment::parallel(const generic_t::segment &s)
 	return *this;
 }
 
-generic_t::segment generic_t::load_term(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token)
+generic_t::segment generic_t::load_term(lexer_t &lexer, const token_t &token)
 {
 	segment result;
-	if (token.tokens.size() > 1 and token.tokens[1].type == "choice") {
-		result = load_choice(definitions, lexer, token.tokens[1]);
+	if (token.tokens.size() > 1 and token.tokens[1].type == "peg::choice") {
+		result = load_choice(lexer, token.tokens[1]);
 	} else if (token.tokens.size() > 0) {
 		std::vector<token_t>::const_iterator i = token.tokens.begin();
 		iterator term = end();
@@ -71,20 +72,26 @@ generic_t::segment generic_t::load_term(std::map<std::string, int> &definitions,
 		} else if (i->type == "character_class") {
 			std::string word = lexer.read(i->begin, i->end);
 			term = insert(new character(word.substr(1, word.size()-2)));
-		} else if (i->type == "instance") {
+		} else if (i->type == "peg::name") {
 			std::string name = lexer.read(i->begin, i->end);
 			if (name == "instance")
 				term = insert(new instance());
 			else if (name == "text")
 				term = insert(new text());
 			else if (name == "_")
-				term = insert(new whitespace());
+				term = insert(new whitespace(false));
+			else if (name == "__")
+				term = insert(new whitespace(true));
 			else if (name == "integer")
 				term = insert(new integer());
 			else if (name == "character_class")
 				term = insert(new character_class());
 			else
 			{
+				size_t space = name.rfind("::");
+				if (space == std::string::npos)
+					name = lexer.basename + "::" + name;
+
 				std::map<std::string, int>::iterator definition = definitions.find(name);
 				if (definition != definitions.end())
 					term = insert(new stem(definition->second));
@@ -97,7 +104,7 @@ generic_t::segment generic_t::load_term(std::map<std::string, int> &definitions,
 				}
 			}
 		} else {
-			result.msgs.push_back(message(message::fail, "invalid term type '" + i->type + "'.", lexer, true, i->begin, i->end));
+			result.msgs.push_back(message(message::fail, "unrecognied term type '" + i->type + "'.", lexer, true, i->begin, i->end));
 		}
 
 		if (term != end()) {
@@ -123,40 +130,41 @@ generic_t::segment generic_t::load_term(std::map<std::string, int> &definitions,
 	return result;
 }
 
-generic_t::segment generic_t::load_sequence(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token)
+generic_t::segment generic_t::load_sequence(lexer_t &lexer, const token_t &token)
 {
 	segment result;
 	for (std::vector<token_t>::const_iterator i = token.tokens.begin(); i != token.tokens.end(); i++)
 	{
-		if (i->type == "term")
-			result.sequence(load_term(definitions, lexer, *i));
-		else if (i->type == "sequence")
-			result.sequence(load_sequence(definitions, lexer, *i));
+		if (i->type == "peg::term")
+			result.sequence(load_term(lexer, *i));
+		else if (i->type == "peg::sequence")
+			result.sequence(load_sequence(lexer, *i));
 	}
 
 	return result;
 }
 
-generic_t::segment generic_t::load_choice(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token)
+generic_t::segment generic_t::load_choice(lexer_t &lexer, const token_t &token)
 {
 	segment result;
 	for (std::vector<token_t>::const_iterator i = token.tokens.begin(); i != token.tokens.end(); i++)
 	{
-		if (i->type == "term")
-			result.parallel(load_term(definitions, lexer, *i));
-		else if (i->type == "sequence")
-			result.parallel(load_sequence(definitions, lexer, *i));
-		else if (i->type == "choice")
-			result.parallel(load_choice(definitions, lexer, *i));
+		if (i->type == "peg::term")
+			result.parallel(load_term(lexer, *i));
+		else if (i->type == "peg::sequence")
+			result.parallel(load_sequence(lexer, *i));
+		else if (i->type == "peg::choice")
+			result.parallel(load_choice(lexer, *i));
 	}
 
 	return result;
 }
 
-void generic_t::load_definition(std::map<std::string, int> &definitions, lexer_t &lexer, const token_t &token)
+void generic_t::load_definition(lexer_t &lexer, const token_t &token)
 {
 	if (token.tokens.size() == 4) {
-		std::string name = lexer.read(token.tokens[0].begin, token.tokens[0].end);
+		std::string name = lexer.basename + "::" + lexer.read(token.tokens[0].begin, token.tokens[0].end);
+
 		std::map<std::string, int>::iterator result = definitions.lower_bound(name);
 		if (result == definitions.end() || result->first != name) {
 			result = definitions.insert(result, std::pair<std::string, int>(name, (int)rules.size()));
@@ -164,7 +172,7 @@ void generic_t::load_definition(std::map<std::string, int> &definitions, lexer_t
 		}
 		
 		if (rules[result->second].start.size() == 0) {
-			segment seg = load_choice(definitions, lexer, token.tokens[2]);
+			segment seg = load_choice(lexer, token.tokens[2]);
 			for (int i = 0; i < (int)seg.msgs.size(); i++)
 				seg.msgs[i].emit();
 
@@ -185,22 +193,80 @@ void generic_t::load_definition(std::map<std::string, int> &definitions, lexer_t
 	}
 }
 
-void generic_t::load(lexer_t &lexer, const token_t &token)
+void generic_t::load_import(lexer_t &lexer, const token_t &token)
 {
-	std::map<std::string, int> definitions;
+	if (token.tokens.size() == 3) {
+		std::string name = lexer.read(token.tokens[1].begin, token.tokens[1].end);
+		name = name.substr(1, name.size()-2);
+		lexer_t sublexer;
+		sublexer.open(name);
+		
+		std::vector<std::string>::iterator loc = std::lower_bound(imports.begin(), imports.end(), sublexer.basename);
+		if (loc == imports.end() || *loc != sublexer.basename) {
+			loc = imports.insert(loc, sublexer.basename);
+
+			peg_t peg;
+			parsing result = peg.parse(sublexer);
+			if (result.msgs.size() == 0) {
+				load_grammar(sublexer, result.tree);
+			} else {
+				message err(message::note, "imported from '" + name + "':", lexer, true, token.begin, token.end);
+				err.emit();
+				for (int i = 0; i < (int)result.msgs.size(); i++)
+					result.msgs[i].emit();
+			}
+		}
+
+		sublexer.close();
+	} else {
+		message err(message::fail, "incorrect format for 'import' should have been caught by the parser", lexer, true, token.begin, token.end);
+		err.emit();
+	}
+}
+
+void generic_t::load_grammar(lexer_t &lexer, const token_t &token)
+{
 	for (std::vector<token_t>::const_iterator i = token.tokens.begin(); i != token.tokens.end(); i++)
 	{
-		if (i->type == "definition")
-			load_definition(definitions, lexer, *i);
-		else if (i->type == "grammar")
-			load(lexer, *i);
-	}
-
-	for (int i = 0; i < (int)rules.size(); i++)
-		if (rules[i].start.size() == 0) {
-			message err(message::error, "definition '" + rules[i].name + "' not found.", lexer, false, -1, -1);
+		if (i->type == "peg::definition")
+			load_definition(lexer, *i);
+		else if (i->type == "peg::import")
+			load_import(lexer, *i);
+		else if (i->type == "peg::grammar")
+			load_grammar(lexer, *i);
+		else {
+			message err(message::fail, "unrecognized grammar type '" + i->type + "'.", lexer, true, token.begin, token.end);
 			err.emit();
 		}
+	}
+}
+
+void generic_t::load(std::string filename)
+{
+	lexer_t lexer;
+	lexer.open(filename);
+	
+	std::vector<std::string>::iterator loc = std::lower_bound(imports.begin(), imports.end(), lexer.basename);
+	if (loc == imports.end() || *loc != lexer.basename) {
+		loc = imports.insert(loc, lexer.basename);
+
+		peg_t peg;
+		parsing result = peg.parse(lexer);
+		if (result.msgs.size() == 0) {
+			load_grammar(lexer, result.tree);
+
+			for (int i = 0; i < (int)rules.size(); i++)
+				if (rules[i].start.size() == 0) {
+					message err(message::error, "definition '" + rules[i].name + "' not found.", lexer, false, -1, -1);
+					err.emit();
+				}
+		} else {
+			for (int i = 0; i < (int)result.msgs.size(); i++)
+				result.msgs[i].emit();
+		}
+	}
+
+	lexer.close();
 }
 
 }
