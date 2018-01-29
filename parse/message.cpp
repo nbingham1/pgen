@@ -80,18 +80,12 @@ void message::emit()
 {
 	if (file.size() > 0)
 		printf("%s:", file.c_str());
-	else
-		printf(":");
 
 	if (line >= 0)
 		printf("%ld:", line);
-	else
-		printf(":");
 
 	if (column >= 0)
 		printf("%ld ", column);
-	else
-		printf(" ");
 
 	printf("%s: %s\n", typestr().c_str(), txt.c_str());
 	if (ctx.size() > 0)

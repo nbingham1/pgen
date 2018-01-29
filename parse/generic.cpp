@@ -160,32 +160,35 @@ generic_t::segment generic_t::load_choice(lexer_t &lexer, const token_t &token)
 	return result;
 }
 
-void generic_t::load_definition(lexer_t &lexer, const token_t &token)
+void generic_t::load_definition(lexer_t &lexer, const token_t &token, std::vector<std::string> defs)
 {
 	if (token.tokens.size() == 4) {
 		std::string name = lexer.basename + "::" + lexer.read(token.tokens[0].begin, token.tokens[0].end);
 
-		std::map<std::string, int>::iterator result = definitions.lower_bound(name);
-		if (result == definitions.end() || result->first != name) {
-			result = definitions.insert(result, std::pair<std::string, int>(name, (int)rules.size()));
-			rules.push_back(rule(name));
-		}
-		
-		if (rules[result->second].start.size() == 0) {
-			segment seg = load_choice(lexer, token.tokens[2]);
-			for (int i = 0; i < (int)seg.msgs.size(); i++)
-				seg.msgs[i].emit();
+		if (defs.size() == 0 or std::find(defs.begin(), defs.end(), name) != defs.end())
+		{
+			std::map<std::string, int>::iterator result = definitions.lower_bound(name);
+			if (result == definitions.end() || result->first != name) {
+				result = definitions.insert(result, std::pair<std::string, int>(name, (int)rules.size()));
+				rules.push_back(rule(name));
+			}
+			
+			if (rules[result->second].start.size() == 0) {
+				segment seg = load_choice(lexer, token.tokens[2]);
+				for (int i = 0; i < (int)seg.msgs.size(); i++)
+					seg.msgs[i].emit();
 
-			for (int i = 0; i < (int)seg.start.size(); i++)
-				rules[result->second].start.push_back(seg.start[i]);
-			if (seg.skip)
-				rules[result->second].start.push_back(end());
+				for (int i = 0; i < (int)seg.start.size(); i++)
+					rules[result->second].start.push_back(seg.start[i]);
+				if (seg.skip)
+					rules[result->second].start.push_back(end());
 
-			for (link_iterator i = seg.end.begin(); i != seg.end.end(); i++)
-				i->link(end());
-		} else {
-			message err(message::error, "multiple definitions for '" + name + "'.", lexer, true, token.begin, token.end);
-			err.emit();
+				for (link_iterator i = seg.end.begin(); i != seg.end.end(); i++)
+					i->link(end());
+			} else {
+				message err(message::error, "multiple definitions for '" + name + "'.", lexer, true, token.begin, token.end);
+				err.emit();
+			}
 		}
 	} else {
 		message err(message::fail, "incorrect format for 'definition' should have been caught by the parser", lexer, true, token.begin, token.end);
@@ -193,47 +196,53 @@ void generic_t::load_definition(lexer_t &lexer, const token_t &token)
 	}
 }
 
-void generic_t::load_import(lexer_t &lexer, const token_t &token)
+void generic_t::load_import(lexer_t &lexer, const token_t &token, std::vector<std::string> defs)
 {
 	if (token.tokens.size() == 3) {
 		std::string name = lexer.read(token.tokens[1].begin, token.tokens[1].end);
 		name = name.substr(1, name.size()-2);
 		lexer_t sublexer;
-		sublexer.open(name);
-		
-		std::vector<std::string>::iterator loc = std::lower_bound(imports.begin(), imports.end(), sublexer.basename);
-		if (loc == imports.end() || *loc != sublexer.basename) {
-			loc = imports.insert(loc, sublexer.basename);
+		if (sublexer.open(name))
+		{
+			std::vector<std::string>::iterator loc = std::lower_bound(imports.begin(), imports.end(), sublexer.basename);
+			if (loc == imports.end() || *loc != sublexer.basename) {
+				loc = imports.insert(loc, sublexer.basename);
 
-			peg_t peg;
-			parsing result = peg.parse(sublexer);
-			if (result.msgs.size() == 0) {
-				load_grammar(sublexer, result.tree);
-			} else {
-				message err(message::note, "imported from '" + name + "':", lexer, true, token.begin, token.end);
-				err.emit();
-				for (int i = 0; i < (int)result.msgs.size(); i++)
-					result.msgs[i].emit();
+				peg_t peg;
+				parsing result = peg.parse(sublexer);
+				if (result.msgs.size() == 0) {
+					load_grammar(sublexer, result.tree, defs);
+				} else {
+					message err(message::note, "imported from '" + name + "':", lexer, true, token.begin, token.end);
+					err.emit();
+					for (int i = 0; i < (int)result.msgs.size(); i++)
+						result.msgs[i].emit();
+				}
 			}
-		}
 
-		sublexer.close();
+			sublexer.close();
+		}
+		else
+		{
+			message err(message::error, "file '" + name + "' not found.");
+			err.emit();
+		}
 	} else {
 		message err(message::fail, "incorrect format for 'import' should have been caught by the parser", lexer, true, token.begin, token.end);
 		err.emit();
 	}
 }
 
-void generic_t::load_grammar(lexer_t &lexer, const token_t &token)
+void generic_t::load_grammar(lexer_t &lexer, const token_t &token, std::vector<std::string> defs)
 {
 	for (std::vector<token_t>::const_iterator i = token.tokens.begin(); i != token.tokens.end(); i++)
 	{
 		if (i->type == "peg::definition")
-			load_definition(lexer, *i);
+				load_definition(lexer, *i, defs);
 		else if (i->type == "peg::import")
-			load_import(lexer, *i);
+			load_import(lexer, *i, defs);
 		else if (i->type == "peg::grammar")
-			load_grammar(lexer, *i);
+			load_grammar(lexer, *i, defs);
 		else {
 			message err(message::fail, "unrecognized grammar type '" + i->type + "'.", lexer, true, token.begin, token.end);
 			err.emit();
@@ -241,32 +250,37 @@ void generic_t::load_grammar(lexer_t &lexer, const token_t &token)
 	}
 }
 
-void generic_t::load(std::string filename)
+void generic_t::load(std::string filename, std::vector<std::string> defs)
 {
 	lexer_t lexer;
-	lexer.open(filename);
-	
-	std::vector<std::string>::iterator loc = std::lower_bound(imports.begin(), imports.end(), lexer.basename);
-	if (loc == imports.end() || *loc != lexer.basename) {
-		loc = imports.insert(loc, lexer.basename);
+	if (lexer.open(filename))
+	{
+		std::vector<std::string>::iterator loc = std::lower_bound(imports.begin(), imports.end(), lexer.basename);
+		if (loc == imports.end() || *loc != lexer.basename) {
+			loc = imports.insert(loc, lexer.basename);
 
-		peg_t peg;
-		parsing result = peg.parse(lexer);
-		if (result.msgs.size() == 0) {
-			load_grammar(lexer, result.tree);
+			peg_t peg;
+			parsing result = peg.parse(lexer);
+			if (result.msgs.size() == 0) {
+				load_grammar(lexer, result.tree, defs);
 
-			for (int i = 0; i < (int)rules.size(); i++)
-				if (rules[i].start.size() == 0) {
-					message err(message::error, "definition '" + rules[i].name + "' not found.", lexer, false, -1, -1);
-					err.emit();
-				}
-		} else {
-			for (int i = 0; i < (int)result.msgs.size(); i++)
-				result.msgs[i].emit();
+				for (int i = 0; i < (int)rules.size(); i++)
+					if (rules[i].start.size() == 0) {
+						message err(message::warning, "definition '" + rules[i].name + "' not found.");
+						err.emit();
+					}
+			} else
+				for (int i = 0; i < (int)result.msgs.size(); i++)
+					result.msgs[i].emit();
 		}
-	}
 
-	lexer.close();
+		lexer.close();
+	}
+	else
+	{
+		message err(message::error, "file '" + filename + "' not found.");
+		err.emit();
+	}
 }
 
 }

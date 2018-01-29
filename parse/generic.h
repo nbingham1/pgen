@@ -29,10 +29,10 @@ struct generic_t : grammar_t
 	segment load_term(lexer_t &lexer, const token_t &token);
 	segment load_sequence(lexer_t &lexer, const token_t &token);
 	segment load_choice(lexer_t &lexer, const token_t &token);
-	void load_definition(lexer_t &lexer, const token_t &token);
-	void load_import(lexer_t &lexer, const token_t &token);
-	void load_grammar(lexer_t &lexer, const token_t &token);
-	void load(std::string filename);
+	void load_definition(lexer_t &lexer, const token_t &token, std::vector<std::string> defs = std::vector<std::string>());
+	void load_import(lexer_t &lexer, const token_t &token, std::vector<std::string> defs = std::vector<std::string>());
+	void load_grammar(lexer_t &lexer, const token_t &token, std::vector<std::string> defs = std::vector<std::string>());
+	void load(std::string filename, std::vector<std::string> defs = std::vector<std::string>());
 };
 
 }
