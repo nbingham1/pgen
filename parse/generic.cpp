@@ -79,9 +79,9 @@ generic_t::segment generic_t::load_term(lexer_t &lexer, const token_t &token)
 			else if (name == "text")
 				term = insert(new text());
 			else if (name == "_")
-				term = insert(new whitespace(false));
-			else if (name == "__")
 				term = insert(new whitespace(true));
+			else if (name == "__")
+				term = insert(new whitespace(false));
 			else if (name == "integer")
 				term = insert(new integer());
 			else if (name == "character_class")
