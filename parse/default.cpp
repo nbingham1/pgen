@@ -365,7 +365,10 @@ grammar_t::symbol *whitespace::clone(int rule_offset) const
 std::string whitespace::emit() const
 {
 	std::stringstream result;
-	result << "whitespace()";
+	if (brk)
+		result << "whitespace()";
+	else
+		result << "whitespace(false)";
 	return result.str();
 }
 
