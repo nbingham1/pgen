@@ -21,6 +21,7 @@ struct branch_t
 	int parent;
 	int branch;
 	bool keep;
+	bool atomic;
 };
 
 struct branches_t
@@ -44,8 +45,9 @@ struct branches_t
 	branch_t &back();
 	grammar_t::const_iterator &curr();
 
-	token_t collapse_frame(int &index);
-	token_t collapse();
+	void collapse_frame(int index);
+	token_t collect_frame(int &index);
+	token_t collect();
 };
 
 }

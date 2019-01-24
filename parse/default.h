@@ -20,7 +20,7 @@ struct stem : grammar_t::symbol
 struct character : grammar_t::symbol
 {
 	character();
-	character(std::string match);
+	character(std::string match, bool keep = true);
 	~character();
 
 	std::vector<std::pair<char, char> > ranges;
@@ -37,7 +37,7 @@ struct character : grammar_t::symbol
 
 struct keyword : grammar_t::symbol
 {
-	keyword(std::string value);
+	keyword(std::string value, bool keep = true);
 	~keyword();
 
 	std::string value;
@@ -49,7 +49,7 @@ struct keyword : grammar_t::symbol
 
 struct instance : grammar_t::symbol
 {
-	instance();
+	instance(bool keep = true);
 	~instance();
 
 	parsing parse(lexer_t &lexer) const;
@@ -59,7 +59,7 @@ struct instance : grammar_t::symbol
 
 struct text : grammar_t::symbol
 {
-	text();
+	text(bool keep = true);
 	~text();
 
 	parsing parse(lexer_t &lexer) const;
@@ -69,7 +69,7 @@ struct text : grammar_t::symbol
 
 struct whitespace : grammar_t::symbol
 {
-	whitespace(bool brk = true);
+	whitespace(bool brk = true, bool keep = false);
 	~whitespace();
 
 	bool brk;
@@ -81,7 +81,7 @@ struct whitespace : grammar_t::symbol
 
 struct integer : grammar_t::symbol
 {
-	integer();
+	integer(bool keep = true);
 	~integer();
 
 	parsing parse(lexer_t &lexer) const;
@@ -91,7 +91,7 @@ struct integer : grammar_t::symbol
 
 struct character_class : grammar_t::symbol
 {
-	character_class();
+	character_class(bool keep = true);
 	~character_class();
 	
 	parsing parse(lexer_t &lexer) const;

@@ -22,6 +22,7 @@ branch_t::branch_t(const grammar_t::rule &rule, int parent, intptr_t offset, boo
 	this->curr = branches[branch];
 
 	this->keep = keep;
+	this->atomic = rule.atomic;
 }
 
 branch_t::branch_t(grammar_t::const_iterator point, int parent, intptr_t offset)
@@ -41,6 +42,7 @@ branch_t::branch_t(grammar_t::const_iterator point, int parent, intptr_t offset)
 		this->curr = point;
 	}
 	this->keep = true;
+	this->atomic = false;
 }
 
 branch_t::~branch_t()
@@ -87,6 +89,10 @@ void branches_t::push_frame(const grammar_t::rule &rule, intptr_t offset, bool k
 
 void branches_t::pop_frame(intptr_t offset)
 {
+	if (frame >= 0 && elems[frame].atomic) {
+		collapse_frame(frame);
+	}
+
 	if (frame > 0)
 		elems.push_back(branch_t(elems[frame-1].curr, elems[frame].parent, offset));
 	else
@@ -152,7 +158,15 @@ grammar_t::const_iterator &branches_t::curr()
 	return elems.back().curr;
 }
 
-token_t branches_t::collapse_frame(int &index)
+void branches_t::collapse_frame(int index)
+{
+	int start = index;
+	elems[start].tree = collect_frame(index);
+	elems.erase(elems.begin()+start+1, elems.begin()+index); 
+}
+
+
+token_t branches_t::collect_frame(int &index)
 {
 	int start = index;
 	token_t result;
@@ -165,7 +179,7 @@ token_t branches_t::collapse_frame(int &index)
 			if (elems[index].tree.type.size() > 0)
 			{
 				bool keep = elems[index].keep;
-				token_t temp = collapse_frame(index);
+				token_t temp = collect_frame(index);
 				if (keep)
 					result.append(temp);
 			}
@@ -178,10 +192,10 @@ token_t branches_t::collapse_frame(int &index)
 	return result;
 }
 
-token_t branches_t::collapse()
+token_t branches_t::collect()
 {
 	int index = 0;
-	return collapse_frame(index);
+	return collect_frame(index);
 }
 
 }

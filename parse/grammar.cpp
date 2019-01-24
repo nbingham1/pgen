@@ -403,10 +403,10 @@ grammar_t::rule::rule()
 {
 }
 
-grammar_t::rule::rule(std::string name, bool keep)
+grammar_t::rule::rule(std::string name, bool atomic)
 {
 	this->name = name;
-	this->keep = keep;
+	this->atomic = atomic;
 }
 
 grammar_t::rule::~rule()
@@ -537,7 +537,7 @@ void grammar_t::import(const grammar_t &gram)
 	// Populate the list of rules
 	for (int i = 0; i < (int)gram.rules.size(); i++)
 	{
-		rules.push_back(rule(gram.rules[i].name, gram.rules[i].keep));
+		rules.push_back(rule(gram.rules[i].name, gram.rules[i].atomic));
 		for (const_link_const_iterator li = gram.rules[i].start.begin(); li != gram.rules[i].start.end(); li++)
 		{
 			std::map<const node*, node*>::iterator n = nodes.find(li->loc);
@@ -580,7 +580,7 @@ void grammar_t::save(std::string space, std::string name, std::ostream &header, 
 	source << "{" << endl;
 
 	for (int i = 0; i < (int)rules.size(); i++)
-		source << "\trules.push_back(rule(\"" << rules[i].name << "\", " << (rules[i].keep ? "true" : "false") << "));" << endl;
+		source << "\trules.push_back(rule(\"" << rules[i].name << "\", " << (rules[i].atomic ? "true" : "false") << "));" << endl;
 	source << endl;
 
 	source << "\titerator n[" << size() << "];" << endl; 
@@ -655,7 +655,7 @@ parsing grammar_t::parse(lexer_t &lexer, int index)
 			parsing result = stack.curr()->parse(lexer);
 
 			if (result.stem >= 0)
-				stack.push_frame(rules[result.stem], lexer.offset, stack.curr()->keep and rules[result.stem].keep);
+				stack.push_frame(rules[result.stem], lexer.offset, stack.curr()->keep);
 			else
 			{
 				//printf("Parsing: %s\n", result.tree.type.c_str());
@@ -671,7 +671,7 @@ parsing grammar_t::parse(lexer_t &lexer, int index)
 				{
 					if (result.tree.end >= best.tree.end)
 					{
-						best.tree = stack.collapse();
+						best.tree = stack.collect();
 						best.msgs = result.msgs;
 						//printf("Rewind\n");
 						//best.emit(lexer);
@@ -696,7 +696,7 @@ parsing grammar_t::parse(lexer_t &lexer, int index)
 	else
 	{
 		parsing result;
-		result.tree = stack.collapse();
+		result.tree = stack.collect();
 		return result;
 	}
 }

@@ -154,7 +154,7 @@ char lexer_t::get()
 		lines.push_back(offset);
 	}
 	
-	return 0;
+	return '\0';
 }
 
 void lexer_t::unget()

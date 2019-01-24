@@ -31,7 +31,7 @@ grammar_t::symbol *stem::clone(int rule_offset) const
 std::string stem::emit() const
 {
 	std::stringstream result;
-	result << "stem(" << index << ", " << keep << ")";
+	result << "stem(" << index << ", " << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 
@@ -39,10 +39,9 @@ character::character()
 {
 }
 
-character::character(std::string match)
+character::character(std::string match, bool keep) : grammar_t::symbol(keep)
 {
 	invert = false;
-	keep = false;
 
 	if (match.size() > 0)
 	{
@@ -56,7 +55,7 @@ character::character(std::string match)
 		bool range = false;
 		while (i < (int)match.size())
 		{
-			if (not range and match[i] == '-')
+			if (not range and match[i] == '-' and ranges.size() > 0 and ranges.back().first == ranges.back().second)
 				range = true;
 			else
 			{
@@ -92,6 +91,7 @@ character::~character()
 std::string character::escape(char c) const
 {
 	switch (c) {
+		case '\0': return "\\0";
 		case '\a': return "\\a";
 		case '\b': return "\\b";
 		case '\f': return "\\f";
@@ -99,7 +99,7 @@ std::string character::escape(char c) const
 		case '\r': return "\\r";
 		case '\t': return "\\t";
 		case '\v': return "\\v";
-		case '\0': return "\\0";
+		case '^': return "\\^";
 		default: return std::string(1, c);
 	}
 }
@@ -116,6 +116,7 @@ char character::unescape(char c) const
 	case 't': return '\t';
 	case 'v': return '\v';
 	case '0': return '\0';
+	case '^': return '^';
 	default: return c;
 	}
 }
@@ -177,14 +178,13 @@ std::string character::emit() const
 			esc.push_back('\\');
 		esc.push_back(txt[i]);
 	}
-	result << "character(\"" << esc << "\")";
+	result << "character(\"" << esc << "\", " << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 
 
-keyword::keyword(std::string value)
+keyword::keyword(std::string value, bool keep) : grammar_t::symbol(keep)
 {
-	this->keep = true;
 	this->value = value;
 }
 
@@ -218,13 +218,12 @@ grammar_t::symbol *keyword::clone(int rule_offset) const
 std::string keyword::emit() const
 {
 	std::stringstream result;
-	result << "keyword(\"" << value << "\")";
+	result << "keyword(\"" << value << "\", " << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 
-instance::instance()
+instance::instance(bool keep) : grammar_t::symbol(keep)
 {
-	this->keep = true;
 }
 
 instance::~instance()
@@ -265,13 +264,12 @@ grammar_t::symbol *instance::clone(int rule_offset) const
 std::string instance::emit() const
 {
 	std::stringstream result;
-	result << "instance()";
+	result << "instance(" << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 
-text::text()
+text::text(bool keep) : grammar_t::symbol(keep)
 {
-	this->keep = true;
 }
 
 text::~text()
@@ -320,13 +318,12 @@ grammar_t::symbol *text::clone(int rule_offset) const
 std::string text::emit() const
 {
 	std::stringstream result;
-	result << "text()";
+	result << "text(" << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 
-whitespace::whitespace(bool brk)
+whitespace::whitespace(bool brk, bool keep) : grammar_t::symbol(keep)
 {
-	this->keep = false;
 	this->brk = brk;
 }
 
@@ -366,15 +363,14 @@ std::string whitespace::emit() const
 {
 	std::stringstream result;
 	if (brk)
-		result << "whitespace()";
+		result << "whitespace(true, " << (keep ? "true" : "false") << ")";
 	else
-		result << "whitespace(false)";
+		result << "whitespace(false, " << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 
-integer::integer()
+integer::integer(bool keep) : grammar_t::symbol(keep)
 {
-	this->keep = true;
 }
 
 integer::~integer()
@@ -410,13 +406,12 @@ grammar_t::symbol *integer::clone(int rule_offset) const
 std::string integer::emit() const
 {
 	std::stringstream result;
-	result << "integer()";
+	result << "integer(" << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 
-character_class::character_class()
+character_class::character_class(bool keep) : grammar_t::symbol(keep)
 {
-	this->keep = true;
 }
 
 character_class::~character_class()
@@ -465,7 +460,7 @@ grammar_t::symbol *character_class::clone(int rule_offset) const
 std::string character_class::emit() const
 {
 	std::stringstream result;
-	result << "character_class()";
+	result << "character_class(" << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 

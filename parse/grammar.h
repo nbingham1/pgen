@@ -138,12 +138,12 @@ struct grammar_t
 	struct rule
 	{
 		rule();
-		rule(std::string name, bool keep = true);
+		rule(std::string name, bool atomic = false);
 		~rule();
 
 		std::string name;
 		const_links start;
-		bool keep;
+		bool atomic;
 
 		void push(const_iterator it);
 	};

@@ -60,47 +60,59 @@ generic_t::segment &generic_t::segment::parallel(const generic_t::segment &s)
 
 generic_t::segment generic_t::load_term(lexer_t &lexer, const token_t &token)
 {
+	bool keep = true;
 	segment result;
-	if (token.tokens.size() > 1 and token.tokens[1].type == "peg::choice") {
-		result = load_choice(lexer, token.tokens[1]);
-	} else if (token.tokens.size() > 0) {
-		std::vector<token_t>::const_iterator i = token.tokens.begin();
+	std::vector<token_t>::const_iterator i = token.tokens.begin();
+	std::string word;
+
+	if (i != token.tokens.end()) {
+		word = lexer.read(i->begin, i->end);
+		if (word == "~") {
+			keep = false;
+			i++;
+		}
+	}
+
+	if (i != token.tokens.end()) {
+		word = lexer.read(i->begin, i->end);
 		iterator term = end();
-		if (i->type == "text") {
-			std::string word = lexer.read(i->begin, i->end);
-			term = insert(new keyword(word.substr(1, word.size()-2)));
+		if (word == "(") {
+			i++;
+			if (i->type == "peg::choice") {
+				result = load_choice(lexer, *i);
+			}
+		} else if (i->type == "text") {
+			term = insert(new keyword(word.substr(1, word.size()-2), keep));
 		} else if (i->type == "character_class") {
-			std::string word = lexer.read(i->begin, i->end);
-			term = insert(new character(word.substr(1, word.size()-2)));
+			term = insert(new character(word.substr(1, word.size()-2), keep));
 		} else if (i->type == "peg::name") {
-			std::string name = lexer.read(i->begin, i->end);
-			if (name == "instance")
-				term = insert(new instance());
-			else if (name == "text")
-				term = insert(new text());
-			else if (name == "_")
+			if (word == "instance")
+				term = insert(new instance(keep));
+			else if (word == "text")
+				term = insert(new text(keep));
+			else if (word == "_")
 				term = insert(new whitespace(true));
-			else if (name == "__")
+			else if (word == "__")
 				term = insert(new whitespace(false));
-			else if (name == "integer")
-				term = insert(new integer());
-			else if (name == "character_class")
-				term = insert(new character_class());
+			else if (word == "integer")
+				term = insert(new integer(keep));
+			else if (word == "character_class")
+				term = insert(new character_class(keep));
 			else
 			{
-				size_t space = name.rfind("::");
+				size_t space = word.rfind("::");
 				if (space == std::string::npos)
-					name = lexer.basename + "::" + name;
+					word = lexer.basename + "::" + word;
 
-				std::map<std::string, int>::iterator definition = definitions.find(name);
+				std::map<std::string, int>::iterator definition = definitions.find(word);
 				if (definition != definitions.end())
-					term = insert(new stem(definition->second));
+					term = insert(new stem(definition->second, keep));
 				else
 				{
 					int index = rules.size();
-					rules.push_back(rule(name));
-					definitions.insert(std::pair<std::string, int>(name, index));
-					term = insert(new stem(index));
+					rules.push_back(rule(word));
+					definitions.insert(std::pair<std::string, int>(word, index));
+					term = insert(new stem(index, keep));
 				}
 			}
 		} else {
@@ -165,10 +177,17 @@ void generic_t::load_definition(lexer_t &lexer, const token_t &token)
 	if (token.tokens.size() == 4) {
 		std::string name = lexer.basename + "::" + lexer.read(token.tokens[0].begin, token.tokens[0].end);
 
+		bool atomic = false;
+		std::string type = lexer.read(token.tokens[1].begin, token.tokens[1].end);
+		if (type == "@=")
+			atomic = true;
+
 		std::map<std::string, int>::iterator result = definitions.lower_bound(name);
 		if (result == definitions.end() || result->first != name) {
 			result = definitions.insert(result, std::pair<std::string, int>(name, (int)rules.size()));
-			rules.push_back(rule(name));
+			rules.push_back(rule(name, atomic));
+		} else {
+			rules[result->second].atomic = atomic;
 		}
 		
 		if (rules[result->second].start.size() == 0) {
@@ -240,7 +259,7 @@ void generic_t::load_grammar(lexer_t &lexer, const token_t &token)
 			load_import(lexer, *i);
 		else if (i->type == "peg::grammar")
 			load_grammar(lexer, *i);
-		else {
+		else if (i->type != "character") {
 			message err(message::fail, "unrecognized grammar type '" + i->type + "'.", lexer, true, token.begin, token.end);
 			err.emit();
 		}
