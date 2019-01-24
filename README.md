@@ -11,17 +11,18 @@ People new to pgen may generate parsers from text files using the `pgen` executa
 
 Source files must be written in the following Parsing Expression Grammar format.
 ```peg
-peg = ((definition | import) _)* [\0];
-definition = instance _ "=" _ choice _ ";";
-import = "import" _ text _ ";";
+peg @= _ ((definition | import) _)* [\0];
+definition @= instance _ ("@=" | "=") _ choice _ ";";
+import @= "import" _ text _ ";";
 choice = sequence (_ "|" _ sequence)*;
 sequence = term (_ term)*;
-term = ("(" _ choice _ ")" | text | name | character_class) (_ ("?" | "*" | "+"))?;
+term = ("(" _ choice _ ")" | ("~" _)? (text | name | character_class)) (_ ("?" | "*" | "+"))?;
 name = instance ("::" instance)?;
 ```
 
-This interface sacrifices some flexibility in favor of speed by using the following basic hard-coded
-symbols defined in [parse/default.h](parse/default.h):
+This implements the typical PEG language constructs with sequence `term term`, choice `term | term`, zero-or-more `term*`, one or more `term+`, and optional `term?`. There are two optimizations built on top of this. `~term` throws away the term after parsing it and `myrule @= stuff;` defines an "atomic" rule meaning no one input can match that rule in more than one way.
+
+There are basic hard-coded symbols to start with defined in [parse/default.h](parse/default.h):
 ```peg
 instance = [a-zA-Z_][a-zA-Z0-9_]*;
 text = "\"" [^\"]* "\"";
