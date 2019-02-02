@@ -177,10 +177,10 @@ void generic_t::load_definition(lexer_t &lexer, const token_t &token)
 	if (token.tokens.size() == 4) {
 		std::string name = lexer.basename + "::" + lexer.read(token.tokens[0].begin, token.tokens[0].end);
 
-		bool atomic = false;
+		bool atomic = true;
 		std::string type = lexer.read(token.tokens[1].begin, token.tokens[1].end);
 		if (type == "@=")
-			atomic = true;
+			atomic = false;
 
 		std::map<std::string, int>::iterator result = definitions.lower_bound(name);
 		if (result == definitions.end() || result->first != name) {
