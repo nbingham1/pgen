@@ -1,6 +1,6 @@
-peg @= _ ((definition | import) _)* [\0];
-definition @= instance _ ("@=" | "=") _ choice _ ";";
-import @= "import" _ text _ ";";
+peg = _ ((definition | import) _)* [\0];
+definition = instance _ ("@=" | "=") _ choice _ ";";
+import = "import" _ text _ ";";
 choice = sequence (_ "|" _ sequence)*;
 sequence = term (_ term)*;
 term = ("(" _ choice _ ")" | ("~" _)? (text | name | character_class)) (_ ("?" | "*" | "+"))?;

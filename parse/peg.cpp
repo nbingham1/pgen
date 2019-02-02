@@ -10,10 +10,10 @@ peg_t::peg_t()
 	rules.push_back(rule("peg::peg", true));
 	rules.push_back(rule("peg::definition", true));
 	rules.push_back(rule("peg::import", true));
-	rules.push_back(rule("peg::choice", false));
-	rules.push_back(rule("peg::sequence", false));
-	rules.push_back(rule("peg::term", false));
-	rules.push_back(rule("peg::name", false));
+	rules.push_back(rule("peg::choice", true));
+	rules.push_back(rule("peg::sequence", true));
+	rules.push_back(rule("peg::term", true));
+	rules.push_back(rule("peg::name", true));
 
 	iterator n[43];
 	n[0] = insert(new whitespace(true, false));
