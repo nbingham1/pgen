@@ -81,8 +81,10 @@ struct whitespace : grammar_t::symbol
 
 struct integer : grammar_t::symbol
 {
-	integer(bool keep = true);
+	integer(int base, bool keep = true);
 	~integer();
+
+	int base;
 
 	parsing parse(lexer_t &lexer) const;
 	symbol *clone(int rule_offset = 0) const;

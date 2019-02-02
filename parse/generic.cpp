@@ -94,8 +94,13 @@ generic_t::segment generic_t::load_term(lexer_t &lexer, const token_t &token)
 				term = insert(new whitespace(true));
 			else if (word == "__")
 				term = insert(new whitespace(false));
-			else if (word == "integer")
-				term = insert(new integer(keep));
+			else if (word.compare(0, 7, "integer") == 0) {
+				std::string base = word.substr(7);
+				if (base.size() > 0)
+					term = insert(new integer(atoi(base.c_str()), keep));
+				else
+					term = insert(new integer(10, keep));
+			}
 			else if (word == "character_class")
 				term = insert(new character_class(keep));
 			else

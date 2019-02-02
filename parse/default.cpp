@@ -369,8 +369,9 @@ std::string whitespace::emit() const
 	return result.str();
 }
 
-integer::integer(bool keep) : grammar_t::symbol(keep)
+integer::integer(int base, bool keep) : grammar_t::symbol(keep)
 {
+	this->base = base;
 }
 
 integer::~integer()
@@ -383,7 +384,10 @@ parsing integer::parse(lexer_t &lexer) const
 	result.tree.type = "integer";
 
 	char c = lexer.get();
-	while ((c >= '0' and c <= '9') and c != 0)
+	while (((c >= '0' and c < ('0' + std::min(base, 10)))
+	     or (c >= 'a' and c < ('a' + std::max(base-10, 0)))
+	     or (c >= 'A' and c < ('A' + std::max(base-10, 0))))
+	   and c != 0)
 	{
 		++result.tree.end;
 		c = lexer.get();
@@ -400,13 +404,13 @@ parsing integer::parse(lexer_t &lexer) const
 
 grammar_t::symbol *integer::clone(int rule_offset) const
 {
-	return new integer();
+	return new integer(base);
 }
 
 std::string integer::emit() const
 {
 	std::stringstream result;
-	result << "integer(" << (keep ? "true" : "false") << ")";
+	result << "integer(" << base << ", " << (keep ? "true" : "false") << ")";
 	return result.str();
 }
 
