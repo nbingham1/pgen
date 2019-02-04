@@ -267,7 +267,6 @@ symbol_t *grammar_t::insert(symbol_t *sym)
 
 parsing grammar_t::parse(lexer_t &lexer, int index)
 {
-	printf("%d/%d\n", index, (int)rules.size());
 	parsing best;
 	branches_t stack(rules[index], lexer.offset);
 
