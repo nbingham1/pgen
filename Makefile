@@ -37,7 +37,7 @@ $(TTARGET): $(TOBJECTS) test/gtest_main.o
 test/%.o: test/%.cpp
 	$(CXX) $(CXXFLAGS) $(GTEST_I) $< -c -MMD -o $@
 
-$(BTARGET): $(BOBJECTS)
+$(BTARGET): $(BOBJECTS) $(LTARGET)
 	$(CXX) $(CXXFLAGS) $(BOBJECTS) -o $(BTARGET) -lparse
 
 src/%.o: src/%.cpp

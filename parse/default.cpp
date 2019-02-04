@@ -7,7 +7,7 @@ namespace parse
 
 /********************** STEM **********************/
 
-stem::stem(int index, bool keep) : grammar_t::symbol(keep)
+stem::stem(int index, bool keep) : symbol_t(keep)
 {
 	this->index = index;
 }
@@ -23,7 +23,7 @@ parsing stem::parse(lexer_t &lexer) const
 	return result;
 }
 
-grammar_t::symbol *stem::clone(int rule_offset) const
+symbol_t *stem::clone(int rule_offset) const
 {
 	return new stem(index + rule_offset, keep);
 }
@@ -39,7 +39,7 @@ character::character()
 {
 }
 
-character::character(std::string match, bool keep) : grammar_t::symbol(keep)
+character::character(std::string match, bool keep) : symbol_t(keep)
 {
 	invert = false;
 
@@ -142,7 +142,7 @@ std::string character::name() const
 parsing character::parse(lexer_t &lexer) const
 {
 	parsing result(lexer.offset);
-	result.tree.type = "character";
+	result.tree.type = CHARACTER;
 	
 	char c = lexer.get();
 	++result.tree.end;
@@ -153,12 +153,12 @@ parsing character::parse(lexer_t &lexer) const
 			match = true;
 
 	if (match == invert)
-		result.msgs.push_back(message(message::error, std::string("expected ") + name() + " but found '" + escape(c) + "'.", lexer, true, result.tree.begin, result.tree.end));
-	
+		result.msgs.push_back(error(lexer, result.tree) << "expected " << name() << " but found '" << escape(c) << "'.");
+
 	return result;
 }
 
-grammar_t::symbol *character::clone(int rule_offset) const
+symbol_t *character::clone(int rule_offset) const
 {
 	character *result = new character();
 	result->ranges = ranges;
@@ -183,7 +183,7 @@ std::string character::emit() const
 }
 
 
-keyword::keyword(std::string value, bool keep) : grammar_t::symbol(keep)
+keyword::keyword(std::string value, bool keep) : symbol_t(keep)
 {
 	this->value = value;
 }
@@ -195,14 +195,14 @@ keyword::~keyword()
 parsing keyword::parse(lexer_t &lexer) const
 {
 	parsing result(lexer.offset);
-	result.tree.type = "keyword";
+	result.tree.type = KEYWORD;
 	for (int i = 0; i < (int)value.size(); i++)
 	{
 		char c = lexer.get();
 		++result.tree.end;
 
 		if (c != value[i]) {
-			result.msgs.push_back(message(message::error, std::string("expected \"") + value + "\".", lexer, true, result.tree.begin, result.tree.end));
+			result.msgs.push_back(error(lexer, result.tree) << "expected \"" << value << "\".");
 			return result;
 		}
 	}
@@ -210,7 +210,7 @@ parsing keyword::parse(lexer_t &lexer) const
 	return result;
 }
 
-grammar_t::symbol *keyword::clone(int rule_offset) const
+symbol_t *keyword::clone(int rule_offset) const
 {
 	return new keyword(value);
 }
@@ -222,7 +222,7 @@ std::string keyword::emit() const
 	return result.str();
 }
 
-instance::instance(bool keep) : grammar_t::symbol(keep)
+instance::instance(bool keep) : symbol_t(keep)
 {
 }
 
@@ -233,7 +233,7 @@ instance::~instance()
 parsing instance::parse(lexer_t &lexer) const
 {
 	parsing result(lexer.offset);
-	result.tree.type = "instance";
+	result.tree.type = INSTANCE;
 	bool first = true;
 
 	char c = lexer.get();
@@ -251,12 +251,12 @@ parsing instance::parse(lexer_t &lexer) const
 		lexer.unget();
 
 	if (result.tree.end - result.tree.begin == 0)
-		result.msgs.push_back(message(message::error, "expected instance.", lexer, true, result.tree.begin, result.tree.end));
+		result.msgs.push_back(error(lexer, result.tree) << "expected instance.");
 
 	return result;
 }
 
-grammar_t::symbol *instance::clone(int rule_offset) const
+symbol_t *instance::clone(int rule_offset) const
 {
 	return new instance();
 }
@@ -268,7 +268,7 @@ std::string instance::emit() const
 	return result.str();
 }
 
-text::text(bool keep) : grammar_t::symbol(keep)
+text::text(bool keep) : symbol_t(keep)
 {
 }
 
@@ -279,14 +279,14 @@ text::~text()
 parsing text::parse(lexer_t &lexer) const
 {
 	parsing result(lexer.offset);
-	result.tree.type = "text";
+	result.tree.type = TEXT;
 
 	char c = lexer.get();
 	++result.tree.end;
 	if (c != '\"')
 	{
 		lexer.unget();
-		result.msgs.push_back(message(message::error, "expected text.", lexer, true, result.tree.begin, result.tree.end));
+		result.msgs.push_back(error(lexer, result.tree) << "expected text.");
 		return result;
 	}
 
@@ -305,12 +305,12 @@ parsing text::parse(lexer_t &lexer) const
 	}
 
 	if (c == 0)
-		result.msgs.push_back(message(message::error, "dangling text.", lexer, true, result.tree.begin, result.tree.end));
+		result.msgs.push_back(error(lexer, result.tree) << "dangling text.");
 
 	return result;
 }
 
-grammar_t::symbol *text::clone(int rule_offset) const
+symbol_t *text::clone(int rule_offset) const
 {
 	return new text();
 }
@@ -322,7 +322,7 @@ std::string text::emit() const
 	return result.str();
 }
 
-whitespace::whitespace(bool brk, bool keep) : grammar_t::symbol(keep)
+whitespace::whitespace(bool brk, bool keep) : symbol_t(keep)
 {
 	this->brk = brk;
 }
@@ -334,7 +334,7 @@ whitespace::~whitespace()
 parsing whitespace::parse(lexer_t &lexer) const
 {
 	parsing result(lexer.offset);
-	result.tree.type = "whitespace";
+	result.tree.type = WHITESPACE;
 
 	char c = lexer.get();
 	while ((c == ' ' or
@@ -354,7 +354,7 @@ parsing whitespace::parse(lexer_t &lexer) const
 	return result;
 }
 
-grammar_t::symbol *whitespace::clone(int rule_offset) const
+symbol_t *whitespace::clone(int rule_offset) const
 {
 	return new whitespace();
 }
@@ -369,7 +369,7 @@ std::string whitespace::emit() const
 	return result.str();
 }
 
-integer::integer(int base, bool keep) : grammar_t::symbol(keep)
+integer::integer(int base, bool keep) : symbol_t(keep)
 {
 	this->base = base;
 }
@@ -381,7 +381,7 @@ integer::~integer()
 parsing integer::parse(lexer_t &lexer) const
 {
 	parsing result(lexer.offset);
-	result.tree.type = "integer";
+	result.tree.type = INTEGER;
 
 	char c = lexer.get();
 	while (((c >= '0' and c < ('0' + std::min(base, 10)))
@@ -396,13 +396,14 @@ parsing integer::parse(lexer_t &lexer) const
 	if (c != 0)
 		lexer.unget();
 
-	if (result.tree.end - result.tree.begin == 0)
-		result.msgs.push_back(message(message::error, "expected integer.", lexer, true, result.tree.begin, result.tree.end));
+	if (result.tree.end - result.tree.begin == 0) {
+		result.msgs.push_back(error(lexer, result.tree) << "expected integer.");
+	}
 
 	return result;
 }
 
-grammar_t::symbol *integer::clone(int rule_offset) const
+symbol_t *integer::clone(int rule_offset) const
 {
 	return new integer(base);
 }
@@ -414,7 +415,7 @@ std::string integer::emit() const
 	return result.str();
 }
 
-character_class::character_class(bool keep) : grammar_t::symbol(keep)
+character_class::character_class(bool keep) : symbol_t(keep)
 {
 }
 
@@ -425,14 +426,14 @@ character_class::~character_class()
 parsing character_class::parse(lexer_t &lexer) const
 {
 	parsing result(lexer.offset);
-	result.tree.type = "character_class";
+	result.tree.type = CHARACTER_CLASS;
 
 	char c = lexer.get();
 	++result.tree.end;
 	if (c != '[')
 	{
 		lexer.unget();
-		result.msgs.push_back(message(message::error, "expected character_class.", lexer, true, result.tree.begin, result.tree.end));
+		result.msgs.push_back(error(lexer, result.tree) << "expected character_class.");
 		return result;
 	}
 
@@ -451,12 +452,12 @@ parsing character_class::parse(lexer_t &lexer) const
 	}
 
 	if (c == 0)
-		result.msgs.push_back(message(message::error, "dangling character_class.", lexer, true, result.tree.begin, result.tree.end));
+		result.msgs.push_back(error(lexer, result.tree) << "dangling character_class.");
 
 	return result;
 }
 
-grammar_t::symbol *character_class::clone(int rule_offset) const
+symbol_t *character_class::clone(int rule_offset) const
 {
 	return new character_class();
 }

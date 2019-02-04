@@ -13,7 +13,7 @@ struct token_t
 	token_t(intptr_t begin = -1, intptr_t end = -1);
 	~token_t();
 
-	std::string type;
+	int32_t type;
 	intptr_t begin;
 	intptr_t end;
 	std::vector<token_t> tokens;

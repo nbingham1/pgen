@@ -53,15 +53,15 @@ void token_t::clear()
 void token_t::emit(lexer_t &lexer, std::string tab)
 {
 	if (tokens.size() == 0)
-		printf("%s%s:%ld-%ld: \"%s\"\n", tab.c_str(), type.c_str(), begin, end, lexer.read(begin, end).c_str());
+		printf("%s%u:%ld-%ld: \"%s\"\n", tab.c_str(), type, begin, end, lexer.read(begin, end).c_str());
 	else if (tokens.size() == 1)
 	{
-		printf("%s%s", tab.c_str(), type.c_str());
+		printf("%s%u", tab.c_str(), type);
 		tokens[0].emit(lexer, tab);
 	}
 	else
 	{
-		printf("%s%s:%ld-%ld: \"%s\"\n%s{\n", tab.c_str(), type.c_str(), begin, end, lexer.read(begin, end).c_str(), tab.c_str());
+		printf("%s%u:%ld-%ld: \"%s\"\n%s{\n", tab.c_str(), type, begin, end, lexer.read(begin, end).c_str(), tab.c_str());
 		for (int i = 0; i < (int)tokens.size(); i++)
 			tokens[i].emit(lexer, tab+" ");
 		printf("%s}\n", tab.c_str());

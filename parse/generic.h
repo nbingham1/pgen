@@ -4,35 +4,42 @@
 #include <map>
 
 #include <parse/grammar.h>
+#include <parse/peg.h>
 
 namespace parse
 {
 
-struct generic_t : grammar_t
+struct segment_t
 {
-	struct segment
-	{
-		segment();
-		~segment();
+	segment_t();
+	~segment_t();
 
-		grammar_t::links start, end;
-		bool skip;
-		std::vector<message> msgs;
+	std::vector<symbol_t*> start, end;
+	bool skip;
+	std::vector<message> msgs;
 
-		segment &sequence(const segment &s);
-		segment &parallel(const segment &s);
-	};
+	segment_t &sequence(const segment_t &s);
+	segment_t &parallel(const segment_t &s);
+};
 
+struct generic_t : peg_t
+{
+	generic_t();
+	~generic_t();
+
+	grammar_t peg;
 	std::map<std::string, int> definitions;
 	std::vector<std::string> imports;
 
-	segment load_term(lexer_t &lexer, const token_t &token);
-	segment load_sequence(lexer_t &lexer, const token_t &token);
-	segment load_choice(lexer_t &lexer, const token_t &token);
-	void load_definition(lexer_t &lexer, const token_t &token);
-	void load_import(lexer_t &lexer, const token_t &token);
-	void load_grammar(lexer_t &lexer, const token_t &token);
-	void load(std::string filename);
+	segment_t load_term(lexer_t &lexer, const token_t &token, grammar_t &grammar);
+	segment_t load_sequence(lexer_t &lexer, const token_t &token, grammar_t &grammar);
+	segment_t load_choice(lexer_t &lexer, const token_t &token, grammar_t &grammar);
+	void load_definition(lexer_t &lexer, const token_t &token, grammar_t &grammar);
+	void load_import(lexer_t &lexer, const token_t &token, grammar_t &grammar);
+	void load_grammar(lexer_t &lexer, const token_t &token, grammar_t &grammar);
+	void load(std::string filename, grammar_t &grammar);
 };
+
+void export_grammar(const grammar_t &gram, std::string space, std::string name, std::ostream &header = std::cout, std::ostream &source = std::cout);
 
 }

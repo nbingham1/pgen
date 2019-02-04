@@ -3,93 +3,128 @@
 namespace parse
 {
 
-message::message()
+messenger fail(message::fail);
+messenger error(message::error);
+messenger warning(message::warning);
+messenger note(message::note);
+
+std::ostream &operator<<(std::ostream &os, const message &msg)
 {
-	this->type = -1;
-	
-	offset = -1;
-	length = 0;
-	column = -1;
-	line = -1;
+	if (msg.file.size() > 0)
+		os << msg.file << ":";
+
+	if (msg.line >= 0)
+		os << msg.line << ":";
+
+	if (msg.column >= 0)
+		os << msg.column << " ";
+
+	switch (msg.type)
+	{
+		case message::fail: os << "fail: "; break;
+		case message::error: os << "error: "; break;
+		case message::warning: os << "warning: "; break;
+		default: os << "note: "; break;
+	}
+
+	os << msg.text << std::endl;
+	if (msg.context.size() > 0)
+		os << msg.context;
+	return os;
 }
 
-message::message(int type, std::string txt)
+messenger::messenger(int type)
 {
 	this->type = type;
-	this->txt = txt;
-	
-	offset = -1;
-	length = 0;
-	column = -1;
-	line = -1;
+	context = false;
 }
 
-message::message(int type, std::string txt, lexer_t &lexer, bool has_ctx, intptr_t begin, intptr_t end)
+messenger::~messenger()
 {
-	this->type = type;
-	this->txt = txt;
+}
 
+messenger &messenger::operator() (lexer_t &lexer, token_t token)
+{
+	return this->operator()(lexer, token.begin, token.end);
+}
+
+messenger &messenger::operator() (lexer_t &lexer, intptr_t begin, intptr_t end)
+{
 	file = lexer.name;
-
-	if (begin < 0)
-		begin = lexer.offset;
-	if (end < 0)
-		end = begin;
-
-	offset = begin;
-	length = end - begin;
 	line = lexer.lineof(begin);
-	column = offset - lexer.lines[line];
+	column = begin - lexer.lines[line];
+	length = end - begin;
+	
+	text.clear();
 
-	if (has_ctx)
+	context = lexer.getline(line);
+	if (context.back() != '\n')
+		context.push_back('\n');
+	int maxlen = (int)context.size()-1;
+
+	for (int i = 0; i < column; i++)
 	{
-		ctx = lexer.getline(line);
-		if (ctx.back() != '\n')
-			ctx.push_back('\n');
-
-		for (int i = 0; i < column; i++)
-		{
-			if (ctx[i] < 32 || ctx[i] == 127)
-				ctx.push_back(ctx[i]);
-			else
-				ctx.push_back(' ');
-		}
-		ctx += '^';
-		for (int i = 0; i < length-1; i++)
-			ctx += '~';
-		ctx += '\n';
+		if (context[i] < 32 || context[i] == 127)
+			context.push_back(context[i]);
+		else
+			context.push_back(' ');
 	}
+	context += '^';
+	for (int i = 0; i < length-1 and i+column+1 < maxlen; i++)
+		context += '~';
+	context += '\n';
+
+	return *this;
 }
 
-message::~message()
+messenger &messenger::operator() (std::string file, long line, long column, long length)
 {
+	this->file = file;
+	this->line = line;
+	this->column = column;
+	this->length = length;
+	this->text.clear();
+	this->context.clear();
+
+	return *this;
 }
 
-std::string message::typestr()
+messenger::operator message()
 {
-	switch (type)
+	message result;
+	result.type = type;
+	result.file = file;
+	result.line = line;
+	result.column = column;
+	result.length = length;
+	result.text = text.str();
+	result.context = context;
+	return result;
+}
+
+std::ostream &operator<<(std::ostream &os, const messenger &msg)
+{
+	if (msg.file.size() > 0)
+		os << msg.file << ":";
+
+	if (msg.line >= 0)
+		os << msg.line << ":";
+
+	if (msg.column >= 0)
+		os << msg.column << " ";
+
+	switch (msg.type)
 	{
-		case fail: return "fail";
-		case error: return "error";
-		case warning: return "warning";
-		default: return "note";
+		case message::fail: os << "fail: "; break;
+		case message::error: os << "error: "; break;
+		case message::warning: os << "warning: "; break;
+		default: os << "note: "; break;
 	}
-}
 
-void message::emit()
-{
-	if (file.size() > 0)
-		printf("%s:", file.c_str());
-
-	if (line >= 0)
-		printf("%ld:", line);
-
-	if (column >= 0)
-		printf("%ld ", column);
-
-	printf("%s: %s\n", typestr().c_str(), txt.c_str());
-	if (ctx.size() > 0)
-		printf("%s", ctx.c_str());
+	os << msg.text.str() << std::endl;
+	if (msg.context.size() > 0)
+		os << msg.context;
+	return os;
 }
 
 }

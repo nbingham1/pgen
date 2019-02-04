@@ -24,156 +24,87 @@ struct parsing
 	void emit(lexer_t &lexer);
 };
 
+struct symbol_t 
+{
+	symbol_t(bool keep = true);
+	virtual ~symbol_t();
+
+	bool keep;
+	
+	std::vector<symbol_t*> next;
+	symbol_t *right;
+
+	virtual parsing parse(lexer_t &lexer) const = 0;
+	virtual symbol_t *clone(int rule_offset = 0) const = 0;
+	virtual std::string emit() const = 0;
+};
+
+struct rule_t
+{
+	rule_t();
+	rule_t(int32_t type, std::string name, bool atomic = false);
+	~rule_t();
+
+	int32_t type;
+	std::string name;
+	std::vector<symbol_t*> start;
+	bool atomic;
+};
+
+struct branch_t
+{
+	branch_t();
+	branch_t(const rule_t &rule, int parent, intptr_t offset, bool keep);
+	branch_t(symbol_t *point, int parent, intptr_t offset);
+	~branch_t();
+
+	std::string name;
+	token_t tree;
+	std::vector<symbol_t*> branches;
+	symbol_t *curr;
+	int parent;
+	int branch;
+	bool keep;
+	bool atomic;
+};
+
+struct branches_t
+{
+	branches_t();
+	branches_t(const rule_t &rule, intptr_t offset);
+	~branches_t();
+
+	std::vector<branch_t> elems;
+	int frame;
+
+	operator bool();
+	void push(symbol_t *point, intptr_t offset);
+	void pop();
+	
+	void push_frame(const rule_t &rule, intptr_t offset, bool keep);
+	void pop_frame(intptr_t offset);
+	bool rewind(lexer_t &lexer, std::vector<message> *msgs = NULL);
+	void advance();
+
+	branch_t &back();
+	const symbol_t *curr();
+
+	void collapse_frame(int index);
+	token_t collect_frame(int &index);
+	token_t collect();
+};
+
 struct grammar_t
 {
-	struct iterator;
-	struct const_iterator;
-
-	typedef std::vector<iterator> links;
-	typedef std::vector<const_iterator> const_links;
-	typedef typename std::vector<iterator>::iterator link_iterator;
-	typedef typename std::vector<const_iterator>::iterator const_link_iterator;
-	typedef typename std::vector<iterator>::const_iterator link_const_iterator;
-	typedef typename std::vector<const_iterator>::const_iterator const_link_const_iterator;
-		
-	struct node
-	{
-		node();
-		virtual ~node();
-
-		node *left;
-		node *right;
-	};
-
-	struct symbol : node 
-	{
-		symbol(bool keep = true);
-		virtual ~symbol();
-
-		bool keep;
-		
-		links next;
-		links prev;
-
-		virtual parsing parse(lexer_t &lexer) const = 0;
-		virtual symbol *clone(int rule_offset = 0) const = 0;
-		virtual std::string emit() const = 0;
-	};
-
-	struct iterator
-	{
-		friend class grammar_t;
-		friend class const_iterator;
-		
-		node *loc;
-		
-		iterator();
-		iterator(node *loc);
-		iterator(const iterator &copy);
-		operator bool() const;
-		symbol &operator*() const;
-		symbol *operator->() const;
-		iterator operator++(int);
-		iterator operator--(int);
-		iterator &operator++();
-		iterator &operator--();
-		iterator &operator+=(int n);
-		iterator &operator-=(int n);
-		iterator operator+(int n) const;
-		iterator operator-(int n) const;
-		links &next() const;
-		links &prev() const;
-		bool operator==(iterator iter) const;
-		bool operator!=(iterator iter) const;
-		bool operator==(const_iterator iter) const;
-		bool operator!=(const_iterator iter) const;
-		iterator insert(symbol *sym) const;
-		iterator link(iterator n) const;
-		links link(links n) const;
-		iterator rlink(iterator n) const;
-		void unlink_next(iterator n) const;
-		void unlink_prev(iterator n) const;
-		void unlink(iterator n) const;
-		void runlink(iterator n) const;
-		void drop();
-		iterator push(symbol *sym) const;
-		iterator rpush(symbol *sym) const;
-		iterator &operator=(const iterator &copy);
-	};
-
-	struct const_iterator
-	{
-		friend class grammar_t;
-		friend class iterator;
-		
-		const node *loc;
-
-		const_iterator();
-		const_iterator(const node *loc);
-		const_iterator(const iterator &copy);
-		const_iterator(const const_iterator &copy);
-		
-		operator bool() const;
-		const symbol &operator*() const;
-		const symbol *operator->() const;
-
-		const_iterator operator++(int);
-		const_iterator operator--(int);
-		const_iterator &operator++();
-		const_iterator &operator--();
-		const_iterator &operator+=(int n);
-		const_iterator &operator-=(int n);
-		const_iterator operator+(int n) const;
-		const_iterator operator-(int n) const;
-		const_links next() const;
-		const_links prev() const;
-		bool operator==(iterator iter) const;
-		bool operator!=(iterator iter) const;
-		bool operator==(const_iterator iter) const;
-		bool operator!=(const_iterator iter) const;
-		const_iterator &operator=(const const_iterator &copy);
-		const_iterator &operator=(const iterator &copy);
-	};
-
-	struct rule
-	{
-		rule();
-		rule(std::string name, bool atomic = false);
-		~rule();
-
-		std::string name;
-		const_links start;
-		bool atomic;
-
-		void push(const_iterator it);
-	};
-	
-	node left;
-	node right;
-	std::vector<rule> rules;  
-
 	grammar_t();
-	virtual ~grammar_t();
+	~grammar_t();
 
-	void clear();
-	iterator insert(symbol *sym);
+	symbol_t *symbols;
+	std::vector<rule_t> rules;
 
-	int size();
-	iterator begin();
-	iterator rbegin();
-	iterator end();
-	iterator rend();
-
-	const_iterator begin() const;
-	const_iterator rbegin() const;
-	const_iterator end() const;
-	const_iterator rend() const;
-
-	void import(const grammar_t &gram);
-	void save(std::string space, std::string name, std::ostream &header = std::cout, std::ostream &source = std::cout);
+	symbol_t *insert(symbol_t *sym);
 
 	parsing parse(lexer_t &lexer, int index = 0);
 };
-
 
 }
