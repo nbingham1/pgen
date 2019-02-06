@@ -188,24 +188,41 @@ segment_t generic_t::load_choice(lexer_t &lexer, const token_t &token, grammar_t
 
 void generic_t::load_definition(lexer_t &lexer, const token_t &token, grammar_t &grammar)
 {
-	if (token.tokens.size() == 4) {
-		std::string name = lexer.basename + "::" + lexer.read(token.tokens[0].begin, token.tokens[0].end);
+	std::vector<token_t>::const_iterator curr = token.tokens.begin();
 
-		bool atomic = true;
-		std::string type = lexer.read(token.tokens[1].begin, token.tokens[1].end);
-		if (type == "@=")
-			atomic = false;
+	std::string name;
 
-		std::map<std::string, int>::iterator result = definitions.lower_bound(name);
-		if (result == definitions.end() || result->first != name) {
-			result = definitions.insert(result, std::pair<std::string, int>(name, (int)grammar.rules.size()));
-			grammar.rules.push_back(rule_t(grammar.rules.size(), name, atomic));
-		} else {
-			grammar.rules[result->second].atomic = atomic;
-		}
-		
-		if (grammar.rules[result->second].start.size() == 0) {
-			segment_t seg = load_choice(lexer, token.tokens[2], grammar);
+	if (curr->type == INSTANCE) {
+		name = lexer.basename + "::" + lexer.read(curr->begin, curr->end);
+		curr++;
+	} else {
+		std::cout << (fail(lexer, token) << "incorrect format for 'definition' should have been caught by the parser");
+	}
+
+	bool atomic = true;
+	bool keep = true;
+	if (curr->type == KEYWORD && lexer.read(curr->begin, curr->end) == "~") {
+		keep = false;
+		curr++;
+	}
+
+	if (curr->type == KEYWORD && lexer.read(curr->begin, curr->end) == "@") {
+		atomic = false;
+		curr++;
+	}
+
+	std::map<std::string, int>::iterator result = definitions.lower_bound(name);
+	if (result == definitions.end() || result->first != name) {
+		result = definitions.insert(result, std::pair<std::string, int>(name, (int)grammar.rules.size()));
+		grammar.rules.push_back(rule_t(grammar.rules.size(), name, keep, atomic));
+	} else {
+		grammar.rules[result->second].atomic = atomic;
+		grammar.rules[result->second].keep = keep;
+	}
+	
+	if (grammar.rules[result->second].start.size() == 0) {
+		if (curr->type == CHOICE) {
+			segment_t seg = load_choice(lexer, *curr, grammar);
 			for (int i = 0; i < (int)seg.msgs.size(); i++)
 				std::cout << seg.msgs[i];
 
@@ -217,10 +234,10 @@ void generic_t::load_definition(lexer_t &lexer, const token_t &token, grammar_t 
 			for (std::vector<symbol_t*>::iterator i = seg.end.begin(); i != seg.end.end(); i++)
 				(*i)->next.push_back(NULL);
 		} else {
-			std::cout << (error(lexer, token) << "multiple definitions for '" << name << "'.");
+			std::cout << (fail(lexer, token) << "incorrect format for 'definition' should have been caught by the parser");
 		}
 	} else {
-		std::cout << (fail(lexer, token) << "incorrect format for 'definition' should have been caught by the parser");
+		std::cout << (error(lexer, token) << "multiple definitions for '" << name << "'.");
 	}
 }
 
@@ -339,7 +356,7 @@ void export_grammar(const grammar_t &grammar, std::string space, std::string nam
 
 	for (int i = 0; i < (int)grammar.rules.size(); i++) {
 		source << "\t" << toConst(grammar.rules[i].name) << " = grammar.rules.size();" << endl;
-		source << "\tgrammar.rules.push_back(rule_t(" << toConst(grammar.rules[i].name) << ", \"" << grammar.rules[i].name << "\", " << (grammar.rules[i].atomic ? "true" : "false") << "));" << endl;
+		source << "\tgrammar.rules.push_back(rule_t(" << toConst(grammar.rules[i].name) << ", \"" << grammar.rules[i].name << "\", " << (grammar.rules[i].keep ? "true" : "false") << ", " << (grammar.rules[i].atomic ? "true" : "false") << "));" << endl;
 	}
 	source << endl;
 

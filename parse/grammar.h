@@ -42,13 +42,14 @@ struct symbol_t
 struct rule_t
 {
 	rule_t();
-	rule_t(int32_t type, std::string name, bool atomic = false);
+	rule_t(int32_t type, std::string name, bool keep = true, bool atomic = false);
 	~rule_t();
 
 	int32_t type;
 	std::string name;
 	std::vector<symbol_t*> start;
 	bool atomic;
+	bool keep;
 };
 
 struct branch_t

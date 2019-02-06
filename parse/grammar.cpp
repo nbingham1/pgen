@@ -37,11 +37,12 @@ rule_t::rule_t()
 {
 }
 
-rule_t::rule_t(int32_t type, std::string name, bool atomic)
+rule_t::rule_t(int32_t type, std::string name, bool keep, bool atomic)
 {
 	this->type = type;
 	this->name = name;
 	this->atomic = atomic;
+	this->keep = keep;
 }
 
 rule_t::~rule_t()
@@ -279,7 +280,7 @@ parsing grammar_t::parse(lexer_t &lexer, int index)
 			parsing result = stack.curr()->parse(lexer);
 
 			if (result.stem >= 0)
-				stack.push_frame(rules[result.stem], lexer.offset, stack.curr()->keep);
+				stack.push_frame(rules[result.stem], lexer.offset, rules[result.stem].keep and stack.curr()->keep);
 			else
 			{
 				if (stack.curr()->keep)
