@@ -55,7 +55,7 @@ messenger &messenger::operator() (lexer_t &lexer, intptr_t begin, intptr_t end)
 	column = begin - lexer.lines[line];
 	length = end - begin;
 	
-	text.clear();
+	text.str("");
 
 	context = lexer.getline(line);
 	if (context.back() != '\n')
@@ -83,7 +83,7 @@ messenger &messenger::operator() (std::string file, long line, long column, long
 	this->line = line;
 	this->column = column;
 	this->length = length;
-	this->text.clear();
+	this->text.str("");
 	this->context.clear();
 
 	return *this;
