@@ -1,10 +1,10 @@
-#include <parse/lexer.h>
+#include <pgen/lexer.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm>
 
-namespace parse
+namespace pgen
 {
 
 lexer_t::lexer_t()

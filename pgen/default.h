@@ -1,8 +1,8 @@
 #pragma once
 
-#include <parse/grammar.h>
+#include <pgen/grammar.h>
 
-namespace parse
+namespace pgen
 {
 
 const int32_t CHARACTER = -1;

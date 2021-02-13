@@ -1,8 +1,8 @@
 #include "peg.h"
 
-#include <parse/default.h>
+#include <pgen/default.h>
 
-namespace parse
+namespace pgen
 {
 
 void peg_t::load(grammar_t &grammar)

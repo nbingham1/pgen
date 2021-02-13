@@ -5,11 +5,11 @@
  *      Author: nbingham
  */
 
-#include <parse/generic.h>
-#include <parse/default.h>
-#include <parse/peg.h>
+#include <pgen/generic.h>
+#include <pgen/default.h>
+#include <pgen/peg.h>
 
-namespace parse
+namespace pgen
 {
 
 segment_t::segment_t()
@@ -327,7 +327,7 @@ void export_grammar(const grammar_t &grammar, std::string space, std::string nam
 	using std::endl;
 	
 	header << "#pragma once" << endl << endl;
-	header << "#include <parse/grammar.h>" << endl << endl;
+	header << "#include <pgen/grammar.h>" << endl << endl;
 	if (space.size() > 0) {
 		header << "namespace " << space << endl;
 		header << "{" << endl << endl;
@@ -344,7 +344,7 @@ void export_grammar(const grammar_t &grammar, std::string space, std::string nam
 	}	
 
 	source << "#include \"" << name << ".h\"" << endl << endl;
-	source << "#include <parse/default.h>" << endl << endl;
+	source << "#include <pgen/default.h>" << endl << endl;
 
 	if (space.size() > 0) {
 		source << "namespace " << space << endl;

@@ -3,10 +3,10 @@
 #include <vector>
 #include <map>
 
-#include <parse/grammar.h>
-#include <parse/peg.h>
+#include <pgen/grammar.h>
+#include <pgen/peg.h>
 
-namespace parse
+namespace pgen
 {
 
 struct segment_t

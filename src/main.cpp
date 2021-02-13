@@ -1,14 +1,14 @@
 #include <fstream>
 
-#include <parse/lexer.h>
-#include <parse/generic.h>
+#include <pgen/lexer.h>
+#include <pgen/generic.h>
 
 int main(int argc, char **argv)
 {
 	for (int i = 1; i < argc; i++)
 	{
-		parse::generic_t peg;
-		parse::grammar_t gram;
+		pgen::generic_t peg;
+		pgen::grammar_t gram;
 		peg.load(argv[i], gram);
 
 		std::string path = argv[i];

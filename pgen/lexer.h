@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 
-namespace parse
+namespace pgen
 {
 
 struct lexer_t

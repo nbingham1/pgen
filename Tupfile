@@ -1,0 +1,24 @@
+NAME          = pgen
+SRCDIR        = src 
+CXXFLAGS	    = -O2 -g -Wall -fmessage-length=0 -std=c++20
+INCLUDE_PATHS = -I.
+LIBRARY_PATHS = 
+LIBRARIES     = 
+
+# Static Library
+: foreach $(NAME)/*.cpp | $(NAME)/*.h |> g++ $(INCLUDE_PATHS) $(CXXFLAGS) -c -o %o %f |> build/static/$(NAME)/%B.o {static_objs}
+: {static_objs} |> ar rvs %o %f |> build/lib$(NAME).a
+
+# Shared Library
+: foreach $(NAME)/*.cpp | $(NAME)/*.h |> g++ $(INCLUDE_PATHS) $(CXXFLAGS) -fPIC -c -o %o %f |> build/dynamic/%B.o {dynamic_objs}
+: {dynamic_objs} |> g++ $(LIBRARY_PATHS) -o %o -shared %f -Wl,--no-as-needed $(LIBRARIES) |> build/lib$(NAME).so
+
+# Executable
+: foreach $(SRCDIR)/*.cpp | $(NAME)/*.h |> g++ $(INCLUDE_PATHS) $(CXXFLAGS) -fPIC -c -o %o %f |> build/dynamic/%B.o {dynamic_objs}
+: {dynamic_objs} | build/lib$(NAME).so |> g++ $(LIBRARY_PATHS) -Lbuild -o %o %f -l$(NAME) $(LIBRARIES) |> build/pgen
+
+# Tests
+: foreach test/*.cpp | $(NAME)/*.h |> g++ $(INCLUDE_PATHS) -I. $(CXXFLAGS) -c -o %o %f |> build/test/%B.o {test_objs}
+: {test_objs} | build/lib$(NAME).a |> g++ $(LIBRARY_PATHS) -Lbuild -o %o %f -Wl,-Bstatic -l$(NAME) $(LIBRARIES) -Wl,-Bdynamic |> test_%d
+
+.gitignore

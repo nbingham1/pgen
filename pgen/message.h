@@ -7,12 +7,12 @@
 
 #pragma once
 
-#include <parse/lexer.h>
-#include <parse/token.h>
+#include <pgen/lexer.h>
+#include <pgen/token.h>
 #include <sstream>
 #include <iostream>
 
-namespace parse
+namespace pgen
 {
 
 struct message

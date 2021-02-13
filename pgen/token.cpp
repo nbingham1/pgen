@@ -1,6 +1,6 @@
-#include <parse/token.h>
+#include <pgen/token.h>
 
-namespace parse
+namespace pgen
 {
 
 token_t::token_t(intptr_t begin, intptr_t end)

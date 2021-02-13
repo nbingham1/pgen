@@ -1,7 +1,7 @@
-#include <parse/grammar.h>
+#include <pgen/grammar.h>
 #include <map>
 
-namespace parse
+namespace pgen
 {
 
 parsing::parsing(intptr_t begin, intptr_t end) : tree(begin, end)

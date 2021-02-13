@@ -5,11 +5,11 @@
 #include <algorithm>
 #include <iostream>
 
-#include <parse/token.h>
-#include <parse/message.h>
-#include <parse/lexer.h>
+#include <pgen/token.h>
+#include <pgen/message.h>
+#include <pgen/lexer.h>
 
-namespace parse
+namespace pgen
 {
 
 struct parsing

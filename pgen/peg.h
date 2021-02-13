@@ -1,8 +1,8 @@
 #pragma once
 
-#include <parse/grammar.h>
+#include <pgen/grammar.h>
 
-namespace parse
+namespace pgen
 {
 
 struct peg_t

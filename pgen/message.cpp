@@ -1,6 +1,6 @@
-#include <parse/message.h>
+#include <pgen/message.h>
 
-namespace parse
+namespace pgen
 {
 
 messenger fail(message::fail);

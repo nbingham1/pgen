@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 
-#include <parse/lexer.h>
+#include <pgen/lexer.h>
 
-namespace parse
+namespace pgen
 {
 
 struct token_t
