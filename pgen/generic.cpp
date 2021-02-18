@@ -90,7 +90,7 @@ segment_t generic_t::load_term(lexer_t &lexer, const token_t &token, grammar_t &
 			if (i->type == CHOICE) {
 				result = load_choice(lexer, *i, grammar);
 			}
-		} else if (i->type == PTEXT) {
+		} else if (i->type == TEXT) {
 			term = grammar.insert(new regular_expression(word.substr(1, word.size()-2), keep));
 		} else if (i->type == NAME) {
 			if (word == "_")
@@ -177,7 +177,7 @@ void generic_t::load_definition(lexer_t &lexer, const token_t &token, grammar_t 
 
 	std::string name;
 
-	if (curr->type == PINSTANCE) {
+	if (curr->type == INSTANCE) {
 		name = lexer.basename + "::" + lexer.read(curr->begin, curr->end);
 		curr++;
 	} else {

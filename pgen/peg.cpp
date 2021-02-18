@@ -13,12 +13,12 @@ void peg_t::load(grammar_t &grammar)
 	grammar.rules.push_back(rule_t(DEFINITION, "peg::definition", true, true));
 	IMPORT = grammar.rules.size();
 	grammar.rules.push_back(rule_t(IMPORT, "peg::import", true, true));
-	PINSTANCE = grammar.rules.size();
-	grammar.rules.push_back(rule_t(PINSTANCE, "peg::pinstance", true, true));
+	INSTANCE = grammar.rules.size();
+	grammar.rules.push_back(rule_t(INSTANCE, "peg::instance", true, true));
 	CHOICE = grammar.rules.size();
 	grammar.rules.push_back(rule_t(CHOICE, "peg::choice", true, true));
-	PTEXT = grammar.rules.size();
-	grammar.rules.push_back(rule_t(PTEXT, "peg::ptext", true, true));
+	TEXT = grammar.rules.size();
+	grammar.rules.push_back(rule_t(TEXT, "peg::text", true, true));
 	SEQUENCE = grammar.rules.size();
 	grammar.rules.push_back(rule_t(SEQUENCE, "peg::sequence", true, true));
 	TERM = grammar.rules.size();
