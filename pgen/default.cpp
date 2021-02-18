@@ -94,6 +94,23 @@ regular_expression::~regular_expression()
 {
 }
 
+uint8_t decode_char(char c, int base) {
+	uint8_t value = 255;
+	if (c >= '0' and c <= '9') {
+		value = c - '0';
+	} else if (c >= 'A' and c <= 'Z') {
+		value = 10 + c - 'A';
+	} else if (c >= 'a' and c <= 'z') {
+		value = 10 + c - 'a';
+	}
+
+	if (value >= base) {
+		std::cout << "internal: cannot decode '" << c << "' to base " << base << " integer" << std::endl;
+	}
+
+	return value;
+}
+
 char regular_expression::unescape(std::string::iterator &i) const
 {
 	switch (*i)
@@ -108,31 +125,25 @@ char regular_expression::unescape(std::string::iterator &i) const
 	}
 
 	if (*i == 'x') {
-		std::string value;
+		uint8_t value = 0;
 		i++;
-		value += *i;
+		value += decode_char(*i, 16);
 		char c = *(i+1);
 		if ((c >= '0' and c <= '9') or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')) {
-			i++;
-			value += *i;
+			value = (value << 4) + decode_char(*++i, 16);
 		}
-		return stoi(value, 0, 16);
+		return value;
 	} else if (*i >= '0' and *i <= '7') {
-		std::string value;
-		value += *i;
+		uint8_t value = decode_char(*i, 8);
 		char c = *(i+1);
 		if (c >= '0' and c <= '7') {
-			i++;
-			value += *i;
+			value += decode_char(*++i, 8);
 		}
-
 		c = *(i+1);
 		if (c >= '0' and c <= '7') {
-			i++;
-			value += *i;
+			value += decode_char(*++i, 8);
 		}
-
-		return stoi(value, 0, 8);
+		return value;
 	} else {
 		return *i;
 	}
