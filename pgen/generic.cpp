@@ -90,30 +90,13 @@ segment_t generic_t::load_term(lexer_t &lexer, const token_t &token, grammar_t &
 			if (i->type == CHOICE) {
 				result = load_choice(lexer, *i, grammar);
 			}
-		} else if (i->type == TEXT) {
-			term = grammar.insert(new regular_expression(word.substr(1, word.size()-2), keep));
 		} else if (i->type == PTEXT) {
 			term = grammar.insert(new regular_expression(word.substr(1, word.size()-2), keep));
-		} else if (i->type == CHARACTER_CLASS) {
-			term = grammar.insert(new character_match(word.substr(1, word.size()-2), keep));
 		} else if (i->type == NAME) {
-			if (word == "instance")
-				term = grammar.insert(new instance(keep));
-			else if (word == "text")
-				term = grammar.insert(new text(keep));
-			else if (word == "_")
+			if (word == "_")
 				term = grammar.insert(new regular_expression("[ \\t\\n\\r]*", false));
 			else if (word == "__")
 				term = grammar.insert(new regular_expression("[ \\t]*", false));
-			else if (word.compare(0, 7, "integer") == 0) {
-				std::string base = word.substr(7);
-				if (base.size() > 0)
-					term = grammar.insert(new integer(atoi(base.c_str()), keep));
-				else
-					term = grammar.insert(new integer(10, keep));
-			}
-			else if (word == "character_class")
-				term = grammar.insert(new character_class(keep));
 			else
 			{
 				size_t space = word.rfind("::");
@@ -203,12 +186,12 @@ void generic_t::load_definition(lexer_t &lexer, const token_t &token, grammar_t 
 
 	bool atomic = true;
 	bool keep = true;
-	if (curr->type == KEYWORD && lexer.read(curr->begin, curr->end) == "~") {
+	if (curr->type == REGULAR_EXPRESSION && lexer.read(curr->begin, curr->end) == "~") {
 		keep = false;
 		curr++;
 	}
 
-	if (curr->type == KEYWORD && lexer.read(curr->begin, curr->end) == "@") {
+	if (curr->type == REGULAR_EXPRESSION && lexer.read(curr->begin, curr->end) == "@") {
 		atomic = false;
 		curr++;
 	}
