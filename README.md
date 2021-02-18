@@ -2,37 +2,54 @@
 
 pgen is an extremely flexible parser generator for C++ with multiple interface levels.
 
+## Compile
+
+To compile, execute the tup command.
+
+`tup`
+
+To install tup, visit http://gittup.org/tup/index.html
+
 ## Basics
 
-People new to pgen may generate parsers from text files using the `pgen` executable.
+You may generate parsers from text files using the `pgen` executable in build.
 ```bash
-./pgen file1 file2 ... filen
+build/pgen file1 file2 ... filen
 ```
 
 Source files must be written in the following Parsing Expression Grammar format.
 ```peg
-peg = _ ((definition | import) _)* [\0];
-definition = instance _ "~"? "@"? "=" _ choice _ ";";
+peg = _ ((definition | import) _)* "\0";
+definition = instance _ "~"? "@"? ~"=" _ choice _ ~";";
 import = "import" _ text _ ";";
-choice = sequence (_ "|" _ sequence)*;
+choice = sequence (_ "\|" _ sequence)*;
 sequence = term (_ term)*;
-term = ("(" _ choice _ ")" | ("~" _)? (text | name | character_class)) (_ ("?" | "*" | "+"))?;
+term = ("\(" _ choice _ "\)" | ("~" _)? (text | name)) (_ ("\?" | "\*" | "\+"))?;
 name = instance ("::" instance)?;
+text = "\"([^\"\\]|\\.)*\"";
+instance = "[_a-zA-Z][_a-zA-Z0-9]*"; 
 ```
 
-This implements the typical PEG language constructs with sequence `term term`, choice `term | term`, zero-or-more `term*`, one or more `term+`, and optional `term?`. There are two optimizations built on top of this. `~term` throws away the term after parsing it. There are two definition-wide flags. `myrule ~= stuff;` throws away any parsing of this definition after parsing it. `myrule @= stuff;` defines an "atomic" rule meaning no one input can match that rule in more than one way. This can be combined like `myrule ~@= stuff;`.
+This implements the typical PEG language constructs with sequence `term term`,
+choice `term | term`, zero-or-more `term*`, one or more `term+`, and optional
+`term?`. There are two optimizations built on top of this: throwaway and
+atomic. `~term` throws away the term after parsing it. `myrule ~= stuff;`
+throws away any parsing of this definition after parsing it. `myrule @= stuff;`
+defines an atomic rule in which the user guarantees that no single input can
+match that rule in more than one way. This allows the parser to skip re-tries
+within the rule if a later rule fails to parse. These optimizations may be
+combined like `myrule ~@= stuff;`.
 
-There are basic hard-coded symbols to start with defined in [parse/default.h](parse/default.h):
+When writing a peg file, there are two definitions you should generally include
+to help deal with whitespace.
 ```peg
-instance = [a-zA-Z_][a-zA-Z0-9_]*;
-text = "\"" [^\"]* "\"";
-_ = [ \t\n\r]*;
-__ = [ \t]*;
-integer = [0-9]+;
-character_class = "[" [^\]]+ "]";
+_ ~= "[ \t\n\r]*";
+__ ~= "[ \t]*";
 ```
-This will generate a header and source file with your grammar. You can use these headers the same way the
-PEG parser in [parse/peg.h](parse/peg.h) is used in this example.
+
+`pgen` will generate a header and source file with your grammar. You can use
+these headers the same way the PEG parser in [parse/peg.h](parse/peg.h) is used
+in this example.
 
 ```cpp
 // Initialize the grammar
@@ -74,8 +91,7 @@ with [parse/generic.h](parse/generic.h).
 parse::generic_t gen;
 gen.load_grammar(lexer, result.tree);
 ```
-Once loaded, the
-grammar can be used or saved into a C++ class file for later.
+Once loaded, the grammar can be used or saved into a C++ class file for later.
 ```
 std::ofstream header(headername);
 std::ofstream source(sourcename);

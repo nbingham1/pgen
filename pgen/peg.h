@@ -8,6 +8,7 @@ namespace pgen
 struct peg_t
 {
 	int32_t PEG;
+	int32_t _;
 	int32_t DEFINITION;
 	int32_t IMPORT;
 	int32_t INSTANCE;

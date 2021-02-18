@@ -93,26 +93,19 @@ segment_t generic_t::load_term(lexer_t &lexer, const token_t &token, grammar_t &
 		} else if (i->type == TEXT) {
 			term = grammar.insert(new regular_expression(word.substr(1, word.size()-2), keep));
 		} else if (i->type == NAME) {
-			if (word == "_")
-				term = grammar.insert(new regular_expression("[ \\t\\n\\r]*", false));
-			else if (word == "__")
-				term = grammar.insert(new regular_expression("[ \\t]*", false));
+			size_t space = word.rfind("::");
+			if (space == std::string::npos)
+				word = lexer.basename + "::" + word;
+
+			std::map<std::string, int>::iterator definition = definitions.find(word);
+			if (definition != definitions.end())
+				term = grammar.insert(new stem(definition->second, keep));
 			else
 			{
-				size_t space = word.rfind("::");
-				if (space == std::string::npos)
-					word = lexer.basename + "::" + word;
-
-				std::map<std::string, int>::iterator definition = definitions.find(word);
-				if (definition != definitions.end())
-					term = grammar.insert(new stem(definition->second, keep));
-				else
-				{
-					int index = grammar.rules.size();
-					grammar.rules.push_back(rule_t(grammar.rules.size(), word));
-					definitions.insert(std::pair<std::string, int>(word, index));
-					term = grammar.insert(new stem(index, keep));
-				}
+				int index = grammar.rules.size();
+				grammar.rules.push_back(rule_t(grammar.rules.size(), word));
+				definitions.insert(std::pair<std::string, int>(word, index));
+				term = grammar.insert(new stem(index, keep));
 			}
 		} else {
 			result.msgs.push_back(fail(lexer, *i) << "unrecognied term type '" << i->type << "'.");

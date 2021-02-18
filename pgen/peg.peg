@@ -6,4 +6,5 @@ sequence = term (_ term)*;
 term = ("\(" _ choice _ "\)" | ("~" _)? (text | name)) (_ ("\?" | "\*" | "\+"))?;
 name = instance ("::" instance)?;
 text = "\"([^\"\\]|\\.)*\"";
-instance = "[_a-zA-Z][_a-zA-Z0-9]*"; 
+instance = "[_a-zA-Z][_a-zA-Z0-9]*";
+_ ~= "[ \t\n\r]*";
