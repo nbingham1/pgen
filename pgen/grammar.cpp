@@ -278,7 +278,6 @@ parsing grammar_t::parse(lexer_t &lexer, int index)
 		else
 		{
 			parsing result = stack.curr()->parse(lexer);
-
 			if (result.stem >= 0)
 				stack.push_frame(rules[result.stem], lexer.offset, rules[result.stem].keep and stack.curr()->keep);
 			else

@@ -91,18 +91,20 @@ segment_t generic_t::load_term(lexer_t &lexer, const token_t &token, grammar_t &
 				result = load_choice(lexer, *i, grammar);
 			}
 		} else if (i->type == TEXT) {
-			term = grammar.insert(new keyword(word.substr(1, word.size()-2), keep));
+			term = grammar.insert(new regular_expression(word.substr(1, word.size()-2), keep));
+		} else if (i->type == PTEXT) {
+			term = grammar.insert(new regular_expression(word.substr(1, word.size()-2), keep));
 		} else if (i->type == CHARACTER_CLASS) {
-			term = grammar.insert(new character(word.substr(1, word.size()-2), keep));
+			term = grammar.insert(new character_match(word.substr(1, word.size()-2), keep));
 		} else if (i->type == NAME) {
 			if (word == "instance")
 				term = grammar.insert(new instance(keep));
 			else if (word == "text")
 				term = grammar.insert(new text(keep));
 			else if (word == "_")
-				term = grammar.insert(new whitespace(true));
+				term = grammar.insert(new regular_expression("[ \\t\\n\\r]*", false));
 			else if (word == "__")
-				term = grammar.insert(new whitespace(false));
+				term = grammar.insert(new regular_expression("[ \\t]*", false));
 			else if (word.compare(0, 7, "integer") == 0) {
 				std::string base = word.substr(7);
 				if (base.size() > 0)
@@ -192,7 +194,7 @@ void generic_t::load_definition(lexer_t &lexer, const token_t &token, grammar_t 
 
 	std::string name;
 
-	if (curr->type == INSTANCE) {
+	if (curr->type == PINSTANCE) {
 		name = lexer.basename + "::" + lexer.read(curr->begin, curr->end);
 		curr++;
 	} else {
@@ -282,7 +284,7 @@ void generic_t::load_grammar(lexer_t &lexer, const token_t &token, grammar_t &gr
 			load_import(lexer, *i, grammar);
 		else if (i->type == PEG)
 			load_grammar(lexer, *i, grammar);
-		else if (i->type != CHARACTER)
+		else if (i->type != REGULAR_EXPRESSION)
 			std::cout << (fail(lexer, token) << "unrecognized grammar type '" << i->type << "'." << DEFINITION);
 	}
 }

@@ -1,7 +1,9 @@
-peg = _ ((definition | import) _)* [\0];
-definition = instance _ "~"? "@"? ~"=" _ choice _ ~";";
-import = "import" _ text _ ";";
-choice = sequence (_ "|" _ sequence)*;
+peg = _ ((definition | import) _)* "\0";
+definition = pinstance _ "~"? "@"? ~"=" _ choice _ ~";";
+import = "import" _ ptext _ ";";
+choice = sequence (_ "\|" _ sequence)*;
 sequence = term (_ term)*;
-term = ("(" _ choice _ ")" | ("~" _)? (text | name | character_class)) (_ ("?" | "*" | "+"))?;
-name = instance ("::" instance)?;
+term = ("\(" _ choice _ "\)" | ("~" _)? (ptext | name)) (_ ("\?" | "\*" | "\+"))?;
+name = pinstance ("::" pinstance)?;
+ptext = "\"([^\"\\]|\\.)*\"";
+pinstance = "[_a-zA-Z][_a-zA-Z0-9]*"; 

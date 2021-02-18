@@ -12,6 +12,7 @@ const int32_t TEXT = -4;
 const int32_t WHITESPACE = -5;
 const int32_t INTEGER = -6;
 const int32_t CHARACTER_CLASS = -7; 
+const int32_t REGULAR_EXPRESSION = -8; 
 
 struct stem : symbol_t
 {
@@ -25,11 +26,11 @@ struct stem : symbol_t
 	std::string emit() const;
 };
 
-struct character : symbol_t
+struct character_match : symbol_t
 {
-	character();
-	character(std::string match, bool keep = true);
-	~character();
+	character_match();
+	character_match(std::string match, bool keep = true);
+	~character_match();
 
 	std::vector<std::pair<char, char> > ranges;
 	bool invert;
@@ -104,6 +105,40 @@ struct character_class : symbol_t
 	character_class(bool keep = true);
 	~character_class();
 	
+	parsing parse(lexer_t &lexer) const;
+	symbol_t *clone(int rule_offset = 0) const;
+	std::string emit() const;
+};
+
+struct character
+{
+	character(uint8_t from, uint8_t to);
+	~character();
+
+	uint8_t from, to;
+	std::vector<int16_t> branch;
+
+	bool match(uint8_t c) const;
+};
+
+struct segment
+{
+	std::string::iterator i;
+	std::vector<int16_t> from;
+	std::vector<int16_t> to;
+};
+
+struct regular_expression : symbol_t
+{
+	regular_expression(std::string value, bool keep = true);
+	~regular_expression();
+
+	std::string value;
+	std::vector<int16_t> start;
+	std::vector<character> expr;
+
+	char unescape(std::string::iterator &i) const;
+	bool load(std::string::iterator begin, std::string::iterator end, segment &result);
 	parsing parse(lexer_t &lexer) const;
 	symbol_t *clone(int rule_offset = 0) const;
 	std::string emit() const;

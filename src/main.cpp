@@ -2,9 +2,16 @@
 
 #include <pgen/lexer.h>
 #include <pgen/generic.h>
+#include <pgen/default.h>
 
 int main(int argc, char **argv)
 {
+	/*pgen::regular_expression r("\\\"[^\\\"]*\\\"");
+	pgen::lexer_t lex;
+	lex.open("testfile");
+	pgen::parsing result = r.parse(lex);
+	result.emit(lex);*/
+
 	for (int i = 1; i < argc; i++)
 	{
 		pgen::generic_t peg;
@@ -23,7 +30,7 @@ int main(int argc, char **argv)
 
 		std::ofstream header(path.substr(0, dot) + ".h");
 		std::ofstream source(path.substr(0, dot) + ".cpp");
-		export_grammar(gram, "parse", name, header, source);
+		export_grammar(gram, "pgen", name, header, source);
 	}
 }
 
