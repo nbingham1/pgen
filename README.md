@@ -40,6 +40,12 @@ match that rule in more than one way. This allows the parser to skip re-tries
 within the rule if a later rule fails to parse. These optimizations may be
 combined like `myrule ~@= stuff;`.
 
+A simple token may be specified using a stripped down version of regular
+expressions inside a pair of quotation marks. Supported commands are `.`, `*`,
+`+`, `?`, `( ... )`, `[ ... ]`, `[^ ... ]`, and standard escape sequences `\t`,
+`\n`, `\x00`, `\000`, etc. To match any of the command characters literally,
+they must be escaped like so `\.`.
+
 When writing a peg file, there are two definitions you should generally include
 to help deal with whitespace.
 ```peg
