@@ -1,5 +1,4 @@
 NAME          = pgen
-BUILD         = build-@(TUP_PLATFORM)
 SRCDIR        = src 
 CXXFLAGS	    = -O2 -g -Wall -fmessage-length=0 -std=c++17
 INCLUDE_PATHS = -I.
@@ -8,26 +7,26 @@ LIBRARIES     =
 
 ifeq (@(TUP_PLATFORM),windows)
 CXX           = x86_64-w64-mingw32-g++
-TARGET        = $(BUILD)/pgen-@(TUP_PLATFORM).exe
+TARGET        = pgen-@(TUP_PLATFORM).exe
 else
 CXX           = g++
-TARGET        = $(BUILD)/pgen-@(TUP_PLATFORM)
+TARGET        = pgen-@(TUP_PLATFORM)
 endif
 
 # Static Library
-: foreach $(NAME)/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) $(CXXFLAGS) -c -o %o %f |> $(BUILD)/static/$(NAME)/%B.o {static_objs}
-: {static_objs} |> ar rvs %o %f |> $(BUILD)/lib$(NAME).a
+: foreach $(NAME)/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) $(CXXFLAGS) -c -o %o %f |> obj/$(NAME)/%B.o {static_objs}
+: {static_objs} |> ar rvs %o %f |> lib$(NAME).a
 
 # Shared Library
-: foreach $(NAME)/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) $(CXXFLAGS) -fPIC -c -o %o %f |> $(BUILD)/dynamic/%B.o {dynamic_objs}
-: {dynamic_objs} |> $(CXX) $(LIBRARY_PATHS) -o %o -shared %f -Wl,--no-as-needed $(LIBRARIES) |> $(BUILD)/lib$(NAME).so
+: foreach $(NAME)/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) $(CXXFLAGS) -fPIC -c -o %o %f |> dyn_obj/%B.o {dynamic_objs}
+: {dynamic_objs} |> $(CXX) $(LIBRARY_PATHS) -o %o -shared %f -Wl,--no-as-needed $(LIBRARIES) |> lib$(NAME).so
 
 # Executable
-: foreach $(SRCDIR)/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) $(CXXFLAGS) -fPIC -c -o %o %f |> $(BUILD)/dynamic/%B.o {dynamic_objs}
-: {dynamic_objs} | $(BUILD)/lib$(NAME).so $(BUILD)/lib$(NAME).a  |> $(CXX) $(LIBRARY_PATHS) -L$(BUILD) -o %o %f -l$(NAME) $(LIBRARIES) |> $(TARGET)
+: foreach $(SRCDIR)/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) $(CXXFLAGS) -fPIC -c -o %o %f |> dyn_obj/%B.o {dynamic_objs}
+: {dynamic_objs} | lib$(NAME).so lib$(NAME).a  |> $(CXX) $(LIBRARY_PATHS) -L. -o %o %f -l$(NAME) $(LIBRARIES) |> $(TARGET)
 
 # Tests
-: foreach test/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) -I. $(CXXFLAGS) -c -o %o %f |> $(BUILD)/test/%B.o {test_objs}
-: {test_objs} | $(BUILD)/lib$(NAME).a |> $(CXX) $(LIBRARY_PATHS) -L$(BUILD) -o %o %f -Wl,-Bstatic -l$(NAME) $(LIBRARIES) -Wl,-Bdynamic |> test_%d
+: foreach test/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) -I. $(CXXFLAGS) -c -o %o %f |> test_obj/%B.o {test_objs}
+: {test_objs} | lib$(NAME).a |> $(CXX) $(LIBRARY_PATHS) -L. -o %o %f -Wl,-Bstatic -l$(NAME) $(LIBRARIES) -Wl,-Bdynamic |> test_%d
 
 .gitignore
