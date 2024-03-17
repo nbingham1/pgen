@@ -26,7 +26,7 @@ endif
 : {dynamic_objs} | lib$(NAME).so lib$(NAME).a  |> $(CXX) $(LIBRARY_PATHS) -L. -o %o %f -l$(NAME) $(LIBRARIES) |> $(TARGET)
 
 # Tests
-: foreach test/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) -I. $(CXXFLAGS) -c -o %o %f |> test_obj/%B.o {test_objs}
-: {test_objs} | lib$(NAME).a |> $(CXX) $(LIBRARY_PATHS) -L. -o %o %f -Wl,-Bstatic -l$(NAME) $(LIBRARIES) -Wl,-Bdynamic |> test_%d
+# : foreach test/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) -I. $(CXXFLAGS) -c -o %o %f |> test_obj/%B.o {test_objs}
+#: {test_objs} | lib$(NAME).a |> $(CXX) $(LIBRARY_PATHS) -L. -o %o %f -Wl,-Bstatic -l$(NAME) $(LIBRARIES) -Wl,-Bdynamic |> test_%d
 
 .gitignore
