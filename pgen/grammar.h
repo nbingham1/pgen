@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include <cstdint>
 
 #include <pgen/token.h>
 #include <pgen/message.h>

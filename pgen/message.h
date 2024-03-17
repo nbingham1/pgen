@@ -11,6 +11,7 @@
 #include <pgen/token.h>
 #include <sstream>
 #include <iostream>
+#include <cstdint>
 
 namespace pgen
 {
