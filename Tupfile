@@ -23,10 +23,6 @@ endif
 
 # Executable
 : foreach $(SRCDIR)/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) $(CXXFLAGS) -fPIC -c -o %o %f |> dyn_obj/%B.o {dynamic_objs}
-: {dynamic_objs} | lib$(NAME).so lib$(NAME).a  |> $(CXX) $(LIBRARY_PATHS) -L. -o %o %f $(LIBRARIES) |> $(TARGET)
-
-# Tests
-# : foreach test/*.cpp | $(NAME)/*.h |> $(CXX) $(INCLUDE_PATHS) -I. $(CXXFLAGS) -c -o %o %f |> test_obj/%B.o {test_objs}
-#: {test_objs} | lib$(NAME).a |> $(CXX) $(LIBRARY_PATHS) -L. -o %o %f -Wl,-Bstatic -l:lib$(NAME).a $(LIBRARIES) -Wl,-Bdynamic |> test_%d
+: {dynamic_objs} |> $(CXX) $(LIBRARY_PATHS) -L. -o %o %f $(LIBRARIES) |> $(TARGET)
 
 .gitignore
