@@ -4,11 +4,16 @@ pgen is an extremely flexible parser generator for C++ with multiple interface l
 
 ## Compile
 
+Two build systems are supported at the moment. Tup is preferred.
 To compile, execute the tup command.
 
 `tup`
 
 To install tup, visit http://gittup.org/tup/index.html
+
+Alternatively, use the Makefile.
+
+`make`
 
 ## Basics
 
