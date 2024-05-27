@@ -13,6 +13,8 @@ struct lexer_t
 	~lexer_t();
 
 	FILE *ptr;
+	std::string text;
+
 	std::string name;
 	std::string basename;
 	std::vector<intptr_t> lines;
@@ -25,6 +27,8 @@ struct lexer_t
 	void close();
 
 	int lineof(intptr_t pos) const;
+
+	intptr_t cache(intptr_t pos);
 	
 	void moveto(intptr_t pos);
 
